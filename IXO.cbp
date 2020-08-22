@@ -13,6 +13,7 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
+					<Add option="-Wno-format" />
 				</Compiler>
 			</Target>
 			<Target title="Release">
@@ -30,18 +31,26 @@
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
+			<Add directory="./include" />
 		</Compiler>
 		<Unit filename="include/IXO.h" />
 		<Unit filename="include/IXO_class.h" />
 		<Unit filename="include/IXO_general.h" />
 		<Unit filename="include/IXO_json.h" />
+		<Unit filename="include/IXO_string.h" />
 		<Unit filename="src/IXO.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/IXO_class.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/IXO_general.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/IXO_json.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/IXO_string.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="test_IXO.c">
