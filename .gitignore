@@ -52,5 +52,5 @@ Mkfile.old
 dkms.conf
 
 # Code::Blocks files
-.depend
-.layout
+*.depend
+*.layout

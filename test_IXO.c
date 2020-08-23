@@ -9,65 +9,46 @@ Sample JSON Format
 Person
 {
     "name": String,
-    "age": Int
+    "age": Int,
+    "velocity": [ Float, Float, Float ]
 }
 
 Sample JSON
 
 {
     "name": "Alice",
-    "age": 10
+    "age": 10,
+    "velocity": [ 10, 1.5, -42 ]
 }
+
 
 -*/
 
-IXO_TupleField vec3f_fields[] = {
-    {0*sizeof(float), &IXO_number_class[IXO_NUM_FLOAT]},
-    {1*sizeof(float), &IXO_number_class[IXO_NUM_FLOAT]},
-    {2*sizeof(float), &IXO_number_class[IXO_NUM_FLOAT]},
-    {0}
-};
-IXO_Class vec3f_class = {
-    .type_tuple = {
-        .type   = IXO_CLASS_TUPLE,
-        .fields = vec3f_fields
-    }
-};
+
+typedef struct TST_Vec3f
+{
+    float x, y, z;
+} TST_Vec3f;
+
+IXO_TUPLEDEF(TST_Vec3f,
+    (x, &IXO_float_class),
+    (y, &IXO_float_class),
+    (z, &IXO_float_class)
+);
 
 
-
-typedef struct Person
+typedef struct TST_Person
 {
     char* name;
     uint64_t age;
-    float velocity[3];
-} Person;
+    TST_Vec3f velocity;
+} TST_Person;
 
-#if 0
-
-
-
-
-IXO_StructField person_fields[] = {
-    {"name",     offsetof(Person,name),     &IXO_string_class},
-    {"age",      offsetof(Person,age),      &IXO_number_class[IXO_NUM_UINT64]},
-    {"velocity", offsetof(Person,velocity), &vec3f_class },
-    {0}
-};
-
-Person_class = {
-    .type_struct = {
-        .type   = IXO_CLASS_STRUCT,
-        .fields = person_fields,
-    }
-};
-#else
-IXO_STRUCTDEF(Person,
-    (char*,    name,     &IXO_string_class),
-    (uint64_t, age,      &IXO_number_class[IXO_NUM_UINT64]),
-    (float[],  velocity, &vec3f_class)
-)
-#endif
+IXO_STRUCTDEF(TST_Person,
+    (name,     &IXO_string_class),
+    (age,      &IXO_uint64_class),
+    (velocity, &TST_Vec3f_class)
+);
 
 
 
@@ -78,8 +59,8 @@ int main()
     IXO_DesCtx des;
     IXO_DesConstruct(&des, file, IXO_JSON);
 
-    Person the_person = {0};
-    if(IXO_DesReadObj(&des, &the_person, &Person_class)==0)
+    TST_Person the_person = {0};
+    if(IXO_DesReadObj(&des, &the_person, &TST_Person_class)==0)
     {
         printf("JSON Object couldn't be read\n");
     };
@@ -88,9 +69,9 @@ int main()
     printf("Name: %s, Age: %i, Velocity: [%f, %f, %f]",
            the_person.name,
            (int)the_person.age,
-           the_person.velocity[0],
-           the_person.velocity[1],
-           the_person.velocity[2]);
+           the_person.velocity.x,
+           the_person.velocity.y,
+           the_person.velocity.z);
 
     free(the_person.name);
 }

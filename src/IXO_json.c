@@ -130,6 +130,52 @@ static int IXO_JSON_NextToken(IXO_DesCtx* ctx)
     }
 }
 
+
+
+static int IXO_JSON_SkipObject(IXO_DesCtx* ctx)
+{
+    IXO_JSON_Ctx* json_ctx = &ctx->data_json;
+    IXO_JSON_Lexer* json_lex = &json_ctx->lexer;
+
+    int depth = 0;
+
+    do
+    {
+        if(!IXO_JSON_NextToken(ctx)) return 0;
+
+        switch(json_lex->token.type)
+        {
+            case IXO_JSON_TOK_NUMBER:
+            case IXO_JSON_TOK_STRING:
+            case IXO_JSON_TOK_TRUE:
+            case IXO_JSON_TOK_FALSE:
+            case IXO_JSON_TOK_NULL:
+                break;
+
+            case IXO_JSON_TOK_COLON:
+            case IXO_JSON_TOK_COMMA:
+                break;
+
+            case IXO_JSON_TOK_LEFT_BRACE:
+            case IXO_JSON_TOK_LEFT_BRACKET:
+                depth++;
+                break;
+
+            case IXO_JSON_TOK_RIGHT_BRACE:
+            case IXO_JSON_TOK_RIGHT_BRACKET:
+                depth--;
+                break;
+
+            default:
+                return 0;
+        }
+    }
+    while(depth != 0);
+    return 1;
+}
+
+
+
 int IXO_JSON_ReadObject(IXO_DesCtx* ctx, void* obj, IXO_Class const* cls)
 {
     IXO_JSON_Ctx* json_ctx = &ctx->data_json;
@@ -151,11 +197,16 @@ int IXO_JSON_ReadObject(IXO_DesCtx* ctx, void* obj, IXO_Class const* cls)
                 if(!IXO_JSON_NextToken(ctx)) return 0;
                 if(json_lex->token.type != IXO_JSON_TOK_STRING) return 0;
                 const IXO_StructField* field = IXO_FindStructField(cstk->fields, IXO_String_CStr(&json_lex->token.value));
-                if(!field) return 1;
                 if(!IXO_JSON_NextToken(ctx)) return 0;
                 if(json_lex->token.type != IXO_JSON_TOK_COLON) return 0;
-                if(!IXO_JSON_ReadObject(ctx, IXO_SUBOBJECT(obj, field->offset), field->cls)) return 0;
-
+                if(!field)
+                {
+                    if(!IXO_JSON_SkipObject(ctx)) return 0;
+                }
+                else
+                {
+                    if(!IXO_JSON_ReadObject(ctx, IXO_SUBOBJECT(obj, field->offset), field->cls)) return 0;
+                }
                 if(!IXO_JSON_NextToken(ctx)) return 0;
             }
             return 1;

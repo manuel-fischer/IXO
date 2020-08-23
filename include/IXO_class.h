@@ -131,18 +131,16 @@ IXO_Class IXO_string_class, // if null -> NULL as char*
           IXO_flag_class[8]; // only accesses byte: true, false
 
 
-
-
-
-
-
-
-//#define IXO_CLASS(name
-
-
-
-
-
+#define IXO_uint8_class  (IXO_number_class[IXO_NUM_UINT8])
+#define IXO_uint16_class (IXO_number_class[IXO_NUM_UINT16])
+#define IXO_uint32_class (IXO_number_class[IXO_NUM_UINT32])
+#define IXO_uint64_class (IXO_number_class[IXO_NUM_UINT64])
+#define IXO_int8_class   (IXO_number_class[IXO_NUM_SINT8])
+#define IXO_int16_class  (IXO_number_class[IXO_NUM_SINT16])
+#define IXO_int32_class  (IXO_number_class[IXO_NUM_SINT32])
+#define IXO_int64_class  (IXO_number_class[IXO_NUM_SINT64])
+#define IXO_float_class  (IXO_number_class[IXO_NUM_FLOAT])
+#define IXO_double_class (IXO_number_class[IXO_NUM_DOUBLE])
 
 
 

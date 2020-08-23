@@ -53,13 +53,8 @@
 
 
 
-#define IXO_STRUCT_FIELD_ARR(struct_name, type, name, cls)\
+#define IXO_STRUCT_FIELD_ARR(struct_name, name, cls)\
     {#name, offsetof(struct_name,name), cls},
-
-    /*typedef struct name
-    {
-        IXO_APPLY_EACH(IXO_STRUCT_FIELD_DEF, __VA_ARGS__)
-    } name;*/
 
 #define IXO_STRUCTDEF(name, ...) \
     IXO_StructField name##_fields[] = { \
@@ -71,4 +66,22 @@
             .type   = IXO_CLASS_STRUCT, \
             .fields = name##_fields, \
         } \
-    };
+    }
+
+
+
+
+#define IXO_TUPLE_FIELD_ARR(struct_name, name, cls)\
+    {offsetof(struct_name,name), cls},
+
+#define IXO_TUPLEDEF(name, ...) \
+    IXO_TupleField name##_fields[] = { \
+        IXO_APPLY_EACH(IXO_TUPLE_FIELD_ARR, (name), __VA_ARGS__) \
+        {0} \
+    }; \
+    IXO_Class name##_class = { \
+        .type_tuple = { \
+            .type   = IXO_CLASS_TUPLE, \
+            .fields = name##_fields, \
+        } \
+    }

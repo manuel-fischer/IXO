@@ -1,5 +1,6 @@
 {
     "name": "Alice",
     "age": 10,
+    "not a member": null,
     "velocity": [ 10, 1.5, -42 ]
 }
