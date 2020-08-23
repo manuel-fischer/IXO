@@ -1,9 +1,9 @@
 #include "IXO_json.h"
 #include "IXO_general.h"
+#include "IXO_opt.h"
 
 #include <stdio.h>
 #include <string.h>
-
 
 static int IXO_JSON_IsSpace(int c)
 {
@@ -215,6 +215,8 @@ int IXO_JSON_ReadObject(IXO_DesCtx* ctx, void* obj, IXO_Class const* cls)
 
                 IXO_NUM_TYPE_XY(X,IXO_PP_NONE)
 #undef X
+
+                default: IXO_UNREACHABLE();
             }
         } break;
 
@@ -233,8 +235,10 @@ int IXO_JSON_ReadObject(IXO_DesCtx* ctx, void* obj, IXO_Class const* cls)
             }
             return 0;
         } break;
+
+        default: IXO_UNREACHABLE();
     }
-    return 0;
+    IXO_UNREACHABLE();
 }
 
 

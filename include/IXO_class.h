@@ -46,7 +46,7 @@ typedef enum IXO_ClassType
 typedef enum IXO_NumberType
 {
     IXO_NUM_TYPE_XY(IXO_NUM_TYPE_ENUM, IXO_PP_COMMA),
-    //IXO_NUM_COUNT
+    IXO_NUM_COUNT
 } IXO_NumberType;
 
 typedef union IXO_Class IXO_Class;
@@ -127,7 +127,7 @@ union IXO_Class
 
 // All Special
 IXO_Class IXO_string_class, // if null -> NULL as char*
-          IXO_number_class[/*IXO_NUM_COUNT*/], // index by enum
+          IXO_number_class[IXO_NUM_COUNT], // index by enum
           IXO_flag_class[8]; // only accesses byte: true, false
 
 

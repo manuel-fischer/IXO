@@ -21,13 +21,6 @@ Sample JSON
 
 -*/
 
-typedef struct Person
-{
-    char* name;
-    uint64_t age;
-    float velocity[3];
-} Person;
-
 IXO_TupleField vec3f_fields[] = {
     {0*sizeof(float), &IXO_number_class[IXO_NUM_FLOAT]},
     {1*sizeof(float), &IXO_number_class[IXO_NUM_FLOAT]},
@@ -43,6 +36,18 @@ IXO_Class vec3f_class = {
 
 
 
+typedef struct Person
+{
+    char* name;
+    uint64_t age;
+    float velocity[3];
+} Person;
+
+#if 0
+
+
+
+
 IXO_StructField person_fields[] = {
     {"name",     offsetof(Person,name),     &IXO_string_class},
     {"age",      offsetof(Person,age),      &IXO_number_class[IXO_NUM_UINT64]},
@@ -50,12 +55,20 @@ IXO_StructField person_fields[] = {
     {0}
 };
 
-IXO_Class person_class = {
+Person_class = {
     .type_struct = {
         .type   = IXO_CLASS_STRUCT,
         .fields = person_fields,
     }
 };
+#else
+IXO_STRUCTDEF(Person,
+    (char*,    name,     &IXO_string_class),
+    (uint64_t, age,      &IXO_number_class[IXO_NUM_UINT64]),
+    (float[],  velocity, &vec3f_class)
+)
+#endif
+
 
 
 int main()
@@ -65,8 +78,9 @@ int main()
     IXO_DesCtx des;
     IXO_DesConstruct(&des, file, IXO_JSON);
 
-    Person the_person = {0};
-    if(IXO_DesReadObj(&des, &the_person, &person_class)==0)
+    //Person the_person = {0};
+    IXO_TYPE_69 the_person = {};
+    if(IXO_DesReadObj(&des, &the_person, &Person_class)==0)
     {
         printf("JSON Object couldn't be read\n");
     };

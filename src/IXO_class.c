@@ -9,7 +9,7 @@ IXO_Class IXO_string_class = { .type_string = { .type = IXO_CLASS_STRING, .buf_s
     { .type_primitive = { .type = IXO_CLASS_NUMBER, .bits = enum_name } }
 
 
-IXO_Class IXO_number_class[/*IXO_NUM_COUNT*/] = {
+IXO_Class IXO_number_class[IXO_NUM_COUNT] = {
     IXO_NUM_TYPE_XY(IXO_NUM_TYPE_CLASS, IXO_PP_COMMA)
 };
 
