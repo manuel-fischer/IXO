@@ -51,12 +51,17 @@ typedef enum IXO_NumberType
 
 typedef union IXO_Class IXO_Class;
 
+// combine structfield and tuplefield
+
 // used as an array, with name set to NULL as sentinel
 typedef struct IXO_StructField
 {
     const char* name;
     size_t offset;
     const IXO_Class* cls;
+    size_t param;// used in string/array as size
+                 // used in number as NumberType
+                 // used in flag as bitmask
 } IXO_StructField;
 
 typedef struct IXO_TupleField

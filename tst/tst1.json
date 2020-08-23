@@ -2,5 +2,8 @@
     "name": "Alice",
     "age": 10,
     "not a member": null,
+    "also not a member": {
+        "value": { "here is some stuff": false, "nested array": [ null, "abc", 1.2345, true ] }
+    },
     "velocity": [ 10, 1.5, -42 ]
 }

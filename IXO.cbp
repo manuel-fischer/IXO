@@ -35,8 +35,10 @@
 		</Compiler>
 		<Unit filename="include/IXO.h" />
 		<Unit filename="include/IXO_class.h" />
+		<Unit filename="include/IXO_classdef.h" />
 		<Unit filename="include/IXO_general.h" />
 		<Unit filename="include/IXO_json.h" />
+		<Unit filename="include/IXO_opt.h" />
 		<Unit filename="include/IXO_string.h" />
 		<Unit filename="src/IXO.c">
 			<Option compilerVar="CC" />
@@ -53,7 +55,7 @@
 		<Unit filename="src/IXO_string.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="test_IXO.c">
+		<Unit filename="tst/test_IXO.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="tst/tst1.json" />
