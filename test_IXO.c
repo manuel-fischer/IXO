@@ -78,8 +78,7 @@ int main()
     IXO_DesCtx des;
     IXO_DesConstruct(&des, file, IXO_JSON);
 
-    //Person the_person = {0};
-    IXO_TYPE_69 the_person = {};
+    Person the_person = {0};
     if(IXO_DesReadObj(&des, &the_person, &Person_class)==0)
     {
         printf("JSON Object couldn't be read\n");
