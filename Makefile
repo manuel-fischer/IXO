@@ -1,12 +1,44 @@
-CFLAGS =
+# parallel --jobs
+MAKEFLAGS += -j16
 
-SOURCE_DIR = "$(CURDIR)"
+CFLAGS =
 
 include config.mk
 
-build: 
-	$(MAKE) -C ./src/ build -D
+DUMMY := $(shell $(call MKD,obj))
+DUMMY := $(shell $(call MKD,bin))
+DUMMY := $(shell $(call MKD,lib))
 
+SRC_FILES = $(wildcard src/*.c)
+OBJ_FILES = $(foreach sfile,$(SRC_FILES), \
+				$(subst src/,obj/,$(subst .c,.o,$(sfile))))
+
+CFLAGS = -O3
+INCLUDES = -Iinclude
+
+.PHONY: build-lib
+build-lib: lib/ixo.a
+#	$(MAKE) -C ./src/ build
+
+obj/%.o: src/%.c
+	$(CC) $(CFLAGS) -c $< $(INCLUDES) -o $@
+
+lib/ixo.a: $(OBJ_FILES)
+	ar rvs $@ $(OBJ_FILES)
+
+bin/test_IXO: tst/test_IXO.c lib/ixo.a
+	$(CC) $(CFLAGS) tst/test_IXO.c lib/ixo.a $(INCLUDES) -o $@
+
+.PHONY: build-test test
+build-test: bin/test_IXO	
+
+test: build-test
+	./bin/test_IXO
+
+
+.PHONY: clean
 clean:
-	$(RM) ./obj/*
-	$(RM) ./bin/*
+	$(call RMD,obj)
+	$(call RMD,bin)
+	$(call RMD,lib)
+
