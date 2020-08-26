@@ -71,7 +71,7 @@
 
 
 
-#define IXO_TUPLE_FIELD_ARR(struct_name, name, cls)\
+#define IXO_TUPLE_FIELD_ARR(struct_name, name, cls) \
     {offsetof(struct_name,name), cls},
 
 #define IXO_TUPLEDEF(name, ...) \
@@ -85,3 +85,24 @@
             .fields = name##_fields, \
         } \
     }
+
+
+#define IXO_BIT_FIELD_ARR(bit_name, name, value) \
+    {#name, (value)},
+
+
+// define a bitfiled
+#define IXO_BITDEF(name, ...) \
+    IXO_BitField name##_fields[] = { \
+        IXO_APPLY_EACH(IXO_BIT_FIELD_ARR, (name), __VA_ARGS__) \
+        {0} \
+    }; \
+    IXO_Class name##_class = { \
+        .type_bits = { \
+            .type   = IXO_CLASS_BITS, \
+            .fields = name##_fields, \
+        } \
+    }
+
+
+// TODO IXO_OPTIONDEF -- define string field that maps to a single int

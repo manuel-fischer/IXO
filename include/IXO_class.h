@@ -19,7 +19,8 @@ typedef enum IXO_ClassType
     IXO_CLASS_STRING,
 
     IXO_CLASS_NUMBER,
-    IXO_CLASS_FLAG,
+    IXO_CLASS_FLAG, // TODO remove
+    IXO_CLASS_BITS,
 
     //IXO_CLASS_CUSTOM
 
@@ -75,7 +76,7 @@ typedef struct IXO_TupleField
 typedef struct IXO_ClassStruct
 {
     IXO_ClassType type;
-    IXO_StructField* fields;
+    const IXO_StructField* fields;
 } IXO_ClassStruct;
 
 typedef struct IXO_ClassTuple
@@ -117,6 +118,18 @@ typedef struct IXO_ClassPrimitive
     void* user;
 } IXO_Custom;*/
 
+typedef struct IXO_BitField
+{
+    const char* name;
+    uint32_t    mask;
+} IXO_BitField;
+
+typedef struct IXO_ClassBits
+{
+    IXO_ClassType type;
+    const IXO_BitField* fields;
+} IXO_ClassBits;
+
 union IXO_Class
 {
     IXO_ClassType type;
@@ -126,6 +139,7 @@ union IXO_Class
     IXO_ClassArray     type_array;
     IXO_ClassString    type_string;
     IXO_ClassPrimitive type_primitive;
+    IXO_ClassBits      type_bits;
     //IXO_Custom    type_custom;
 };
 
@@ -151,3 +165,4 @@ IXO_Class IXO_string_class, // if null -> NULL as char*
 
 
 const IXO_StructField* IXO_FindStructField(const IXO_StructField* fields, const char* str);
+const IXO_BitField*    IXO_FindBitField(const IXO_BitField* fields, const char* str);

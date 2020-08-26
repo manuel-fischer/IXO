@@ -25,8 +25,18 @@ IXO_Class IXO_flag_class[8] = {
 };
 
 
-
+// TODO: IXO_FindStructField and IXO_FindBitField have the exact same body
 const IXO_StructField* IXO_FindStructField(const IXO_StructField* fields, const char* str)
+{
+    while(fields->name != NULL)
+    {
+        if(strcmp(fields->name, str) == 0) return fields;
+        ++fields;
+    }
+    return NULL;
+}
+
+const IXO_BitField* IXO_FindBitField(const IXO_BitField* fields, const char* str)
 {
     while(fields->name != NULL)
     {

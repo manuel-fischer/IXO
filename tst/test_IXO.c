@@ -10,7 +10,10 @@ Person
 {
     "name": String,
     "age": Int,
-    "velocity": [ Float, Float, Float ]
+    "car": {
+        "flags": ["AUTOMATIC_DOORS", "CAN_FLY", "HAS_RADIO", "ELECTRO"],
+        "velocity": [ Float, Float, Float ]
+    }
 }
 
 Sample JSON
@@ -18,7 +21,10 @@ Sample JSON
 {
     "name": "Alice",
     "age": 10,
-    "velocity": [ 10, 1.5, -42 ]
+    "car": {
+        "flags": ["CAN_FLY", "ELECTRO"],
+        "velocity": [ 10, 1.5, -42 ]
+    }
 }
 
 
@@ -36,18 +42,41 @@ IXO_TUPLEDEF(TST_Vec3f,
     (z, &IXO_float_class)
 );
 
+typedef uint32_t TST_CarFlags;
+#define TST_AUTOMATIC_DOORS  1u
+#define TST_CAN_FLY          2u
+#define TST_HAS_RADIO        4u
+#define TST_ELECTRO          8u
+
+IXO_BITDEF(TST_CarFlags,
+    (AUTOMATIC_DOORS,  TST_AUTOMATIC_DOORS),
+    (CAN_FLY,          TST_CAN_FLY),
+    (HAS_RADIO,        TST_HAS_RADIO),
+    (ELECTRO,          TST_ELECTRO)
+);
+
+typedef struct TST_Car
+{
+    TST_CarFlags flags;
+    TST_Vec3f    velocity;
+} TST_Car;
+
+IXO_STRUCTDEF(TST_Car,
+    (flags,    &TST_CarFlags_class),
+    (velocity, &TST_Vec3f_class)
+);
 
 typedef struct TST_Person
 {
     char* name;
     uint64_t age;
-    TST_Vec3f velocity;
+    TST_Car car;
 } TST_Person;
 
 IXO_STRUCTDEF(TST_Person,
     (name,     &IXO_string_class),
     (age,      &IXO_uint64_class),
-    (velocity, &TST_Vec3f_class)
+    (car,      &TST_Car_class)
 );
 
 
@@ -66,12 +95,15 @@ int main()
     };
     IXO_DesDestruct(&des);
 
-    printf("Name: %s, Age: %i, Velocity: [%f, %f, %f]",
+    printf("Name: %s, Age: %i\n",
            the_person.name,
-           (int)the_person.age,
-           the_person.velocity.x,
-           the_person.velocity.y,
-           the_person.velocity.z);
+           (int)the_person.age);
+
+    printf("Velocity: [%f, %f, %f], Flags: %i\n",
+           the_person.car.velocity.x,
+           the_person.car.velocity.y,
+           the_person.car.velocity.z,
+           the_person.car.flags);
 
     free(the_person.name);
 }

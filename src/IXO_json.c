@@ -287,6 +287,31 @@ int IXO_JSON_ReadObject(IXO_DesCtx* ctx, void* obj, IXO_Class const* cls)
             return 0;
         } break;
 
+        case IXO_CLASS_BITS:
+        {
+            const IXO_ClassBits* cbts = &cls->type_bits;
+            if(json_lex->token.type != IXO_JSON_TOK_LEFT_BRACKET) return 0;
+            while(json_lex->token.type != IXO_JSON_TOK_RIGHT_BRACKET)
+            {
+                if(json_lex->token.type != IXO_JSON_TOK_LEFT_BRACKET &&
+                   json_lex->token.type != IXO_JSON_TOK_COMMA) return 0;
+
+
+                if(!IXO_JSON_NextToken(ctx)) return 0;
+                if(json_lex->token.type != IXO_JSON_TOK_STRING) return 0;
+
+                const char* str = IXO_String_CStr(&json_lex->token.value);
+                const IXO_BitField* field = IXO_FindBitField(cbts->fields, str);
+                if(field != NULL)
+                {
+                    *(uint32_t*)obj |= field->mask;
+                }
+
+                if(!IXO_JSON_NextToken(ctx)) return 0;
+            }
+            return 1;
+        } break;
+
         default: IXO_UNREACHABLE();
     }
     IXO_UNREACHABLE();
