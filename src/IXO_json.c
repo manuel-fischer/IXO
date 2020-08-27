@@ -312,6 +312,20 @@ int IXO_JSON_ReadObject(IXO_DesCtx* ctx, void* obj, IXO_Class const* cls)
             return 1;
         } break;
 
+        case IXO_CLASS_ENUM:
+        {
+            const IXO_ClassEnum* cenm = &cls->type_enum;
+            if(json_lex->token.type != IXO_JSON_TOK_STRING) return 0;
+            const char* str = IXO_String_CStr(&json_lex->token.value);
+            const IXO_EnumOption* opt = IXO_FindEnumOption(cenm->fields, str);
+            if(opt != NULL)
+            {
+                *(uint32_t*)obj = opt->value;
+                return 1;
+            }
+            return 0;
+        } break;
+
         default: IXO_UNREACHABLE();
     }
     IXO_UNREACHABLE();

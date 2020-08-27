@@ -91,7 +91,12 @@
     {#name, (value)},
 
 
-// define a bitfiled
+/**
+ *  Define a bitfield
+ *  Arrayfield of Strings, that map to a bitfield
+ *  Each string itself maps to one or more bits, that
+ *  are ORed to the complete bitset
+ */
 #define IXO_BITDEF(name, ...) \
     IXO_BitField name##_fields[] = { \
         IXO_APPLY_EACH(IXO_BIT_FIELD_ARR, (name), __VA_ARGS__) \
@@ -105,4 +110,23 @@
     }
 
 
-// TODO IXO_OPTIONDEF -- define string field that maps to a single int
+
+
+#define IXO_ENUM_OPTION_ARR(bit_name, name, value) \
+    {#name, (value)},
+
+/**
+ *  Define an enum
+ *  Stringfield that maps to a single int
+ */
+#define IXO_ENUMDEF(name, ...) \
+    IXO_EnumOption name##_fields[] = { \
+        IXO_APPLY_EACH(IXO_ENUM_OPTION_ARR, (name), __VA_ARGS__) \
+        {0} \
+    }; \
+    IXO_Class name##_class = { \
+        .type_bits = { \
+            .type   = IXO_CLASS_ENUM, \
+            .fields = name##_fields, \
+        } \
+    }

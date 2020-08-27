@@ -21,6 +21,7 @@ typedef enum IXO_ClassType
     IXO_CLASS_NUMBER,
     IXO_CLASS_FLAG, // TODO remove
     IXO_CLASS_BITS,
+    IXO_CLASS_ENUM,
 
     //IXO_CLASS_CUSTOM
 
@@ -130,6 +131,18 @@ typedef struct IXO_ClassBits
     const IXO_BitField* fields;
 } IXO_ClassBits;
 
+typedef struct IXO_EnumOption
+{
+    const char* name;
+    uint32_t    value;
+} IXO_EnumOption;
+
+typedef struct IXO_ClassEnum
+{
+    IXO_ClassType type;
+    const IXO_EnumOption* fields;
+} IXO_ClassEnum;
+
 union IXO_Class
 {
     IXO_ClassType type;
@@ -140,6 +153,7 @@ union IXO_Class
     IXO_ClassString    type_string;
     IXO_ClassPrimitive type_primitive;
     IXO_ClassBits      type_bits;
+    IXO_ClassEnum      type_enum;
     //IXO_Custom    type_custom;
 };
 
@@ -166,3 +180,4 @@ IXO_Class IXO_string_class, // if null -> NULL as char*
 
 const IXO_StructField* IXO_FindStructField(const IXO_StructField* fields, const char* str);
 const IXO_BitField*    IXO_FindBitField(const IXO_BitField* fields, const char* str);
+const IXO_EnumOption*  IXO_FindEnumOption(const IXO_EnumOption* fields, const char* str);

@@ -25,7 +25,10 @@ IXO_Class IXO_flag_class[8] = {
 };
 
 
-// TODO: IXO_FindStructField and IXO_FindBitField have the exact same body
+// TODO: IXO_FindStructField,
+//       IXO_FindBitField and
+//       IXO_FindEnumOption
+//       have the exact same body but operate on different structures
 const IXO_StructField* IXO_FindStructField(const IXO_StructField* fields, const char* str)
 {
     while(fields->name != NULL)
@@ -37,6 +40,16 @@ const IXO_StructField* IXO_FindStructField(const IXO_StructField* fields, const 
 }
 
 const IXO_BitField* IXO_FindBitField(const IXO_BitField* fields, const char* str)
+{
+    while(fields->name != NULL)
+    {
+        if(strcmp(fields->name, str) == 0) return fields;
+        ++fields;
+    }
+    return NULL;
+}
+
+const IXO_EnumOption* IXO_FindEnumOption(const IXO_EnumOption* fields, const char* str)
 {
     while(fields->name != NULL)
     {
