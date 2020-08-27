@@ -18,7 +18,16 @@ typedef struct IXO_DesCtx
     };
 } IXO_DesCtx;
 
+/**
+ *  Creates Deserialisation context,
+ *  It does not take ownership of the file,
+ *  so the file needs to be closed by the caller
+ */
 void IXO_DesConstruct(IXO_DesCtx* ctx, FILE* file, IXO_FileType file_reader);
+/**
+ *  Destructs Deserialisation context,
+ *  It does not close the file
+ */
 void IXO_DesDestruct(IXO_DesCtx* ctx);
 
 int  IXO_DesReadObj(IXO_DesCtx* ctx, void* data_out, IXO_Class const* cls);

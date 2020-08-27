@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 /*
 
@@ -121,10 +122,11 @@ int main()
         printf("JSON Object couldn't be read completely\n");
     };
     IXO_DesDestruct(&des);
+    fclose(file);
 
-    printf("Name: %s, Age: %i\n",
+    printf("Name: %s, Age: %" PRIu64 "\n",
            the_person.name,
-           (int)the_person.age);
+           the_person.age);
 
     printf("Type: %s, Velocity: [%f, %f, %f], Flags: %i\n",
            TST_CAR_TYPE_STR(the_person.car.type),
