@@ -5,8 +5,8 @@
 **test.json**
 ```json
 {
-	"name": "Alice",
-	"age": 42
+    "name": "Alice",
+    "age": 42
 }
 ```
 
@@ -26,29 +26,29 @@ typedef struct Person
 } Person;
 
 IXO_STRUCTDEF(Person,
-	(name, &IXO_string_class),
-	(age,  &IXO_uint64_class)
+    (name, &IXO_string_class),
+    (age,  &IXO_uint64_class)
 );
 
 int main()
 {
     FILE* file = fopen("test.json", "r");
     if(!file) return 1;
-	
+    
     IXO_DesCtx des;
     IXO_DesConstruct(&des, file, IXO_JSON);
-	
-	TST_Person the_person = {0};
-	if(!IXO_DesReadObj(&des, &the_person, &Person_class))
-	{
-		printf("Object couldn't be read completely\n");
-	}
-	else
-	{
-		printf("%s is %" PRIu64 " years old\n", the_person.name, the_person.age);
-	}
-	IXO_DesDestruct(&des);
-	fclose(file);
+    
+    TST_Person the_person = {0};
+    if(!IXO_DesReadObj(&des, &the_person, &Person_class))
+    {
+        printf("Object couldn't be read completely\n");
+    }
+    else
+    {
+        printf("%s is %" PRIu64 " years old\n", the_person.name, the_person.age);
+    }
+    IXO_DesDestruct(&des);
+    fclose(file);
 }
 ```
 
@@ -64,8 +64,8 @@ but do not read/write any objects.
 #### 2. Defining the type information
 ```cpp
 IXO_STRUCTDEF(Person,
-	(name, &IXO_string_class),
-	(age,  &IXO_uint64_class)
+    (name, &IXO_string_class),
+    (age,  &IXO_uint64_class)
 );
 ```
 
@@ -134,11 +134,11 @@ by the caller.
 TST_Person the_person = {0};
 if(!IXO_DesReadObj(&des, &the_person, &Person_class))
 {
-	printf("Object couldn't be read completely\n");
+    printf("Object couldn't be read completely\n");
 }
 else
 {
-	printf("%s is %" PRIu64 " years old\n", the_person.name, the_person.age);
+    printf("%s is %" PRIu64 " years old\n", the_person.name, the_person.age);
 }
 ```
 
