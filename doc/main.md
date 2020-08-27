@@ -49,8 +49,8 @@ int main()
     }
     IXO_DesDestruct(&des);
     fclose(file);
-	
-	free(the_person.name);
+    
+    free(the_person.name);
 }
 ```
 
