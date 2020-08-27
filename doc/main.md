@@ -49,12 +49,14 @@ int main()
     }
     IXO_DesDestruct(&des);
     fclose(file);
+	
+	free(the_person.name);
 }
 ```
 
 ### Step by step explanation
 #### 1. Inclusion of `IXO.h`
-```cpp
+```c
 #include <IXO.h>
 ```
 It is sufficient to include `IXO.h` to use the library, specialized files like
@@ -62,7 +64,7 @@ It is sufficient to include `IXO.h` to use the library, specialized files like
 but do not read/write any objects.
 
 #### 2. Defining the type information
-```cpp
+```c
 IXO_STRUCTDEF(Person,
     (name, &IXO_string_class),
     (age,  &IXO_uint64_class)
@@ -107,6 +109,11 @@ And also there is a class for zero terminated strings, corresponding to the
 IXO_string_class
 ```
 
+It dynamically allocates the string with `malloc` (or related), so the
+string needs to be cleaned with `free`.
+
+**For headerfiles**
+
 To declare the class without implementing it, the macro `IXO_DECLARE_CLASS`
 can be used with the type name. Here it would be `IXO_DECLARE_CLASS(Person);`.
 
@@ -114,7 +121,7 @@ Note the trailing semicolon, semicolons are needed after any of these macros.
 
 #### 3. Creating and destroying a deserialization context
 
-```cpp
+```c
 IXO_DesCtx des;
 IXO_DesConstruct(&des, file, IXO_JSON);
 ...
@@ -130,7 +137,7 @@ by the caller.
 
 
 #### 4. Reading the object
-```
+```c
 TST_Person the_person = {0};
 if(!IXO_DesReadObj(&des, &the_person, &Person_class))
 {
@@ -144,8 +151,10 @@ else
 
 To read an object from the context, the function `IXO_DesReadObj` is called.
 The first parameter is the pointer to the deserialization context. The second
-is a pointer to the object that gets filled with data. The last is the class
-that provides type information of the object.
+is a pointer to the object that gets filled with data. The last parameter
+is the class that provides type information of the object.
+
+The object itself should be filled with the default values. 
 
 ### Structs vs Tuples
 
