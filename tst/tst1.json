@@ -9,5 +9,13 @@
         "type": "VAN",
         "flags": ["CAN_FLY", "ELECTRO"],
         "velocity": [ 10, 1.5, -42 ]
-    }
+    },
+    "hobbies": [
+        "writing stories",
+        "swimming",
+        "playing soccer",
+        "painting",
+        "playing the piano",
+        "meeting friends"
+    ]
 }

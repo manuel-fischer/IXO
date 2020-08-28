@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <memory.h>
+
 /*
 
 Sample JSON Format
@@ -94,17 +96,67 @@ IXO_STRUCTDEF(TST_Car,
     (velocity, &TST_Vec3f_class)
 );
 
+typedef struct TST_StringArray
+{
+    size_t size;
+    size_t capacity;
+    char** data;
+} TST_StringArray;
+
+void* TST_StringArray_vpush(void* array, void* data)
+{
+    TST_StringArray* arr = (TST_StringArray*)array;
+    if(arr->size == arr->capacity)
+    {
+        size_t new_cap = arr->capacity;
+        if(new_cap == 0) new_cap = 16;
+        else new_cap <<= 1;
+        char** new_data = realloc(arr->data, sizeof(char*)*new_cap);
+        if(new_data == 0)
+        {
+            if(data != NULL)
+                free(*(char**)data);
+            return NULL;
+        }
+        arr->data = new_data;
+        arr->capacity = new_cap;
+    }
+    ++arr->size;
+    char** elem = &arr->data[arr->size-1];
+    if(data != NULL)
+        memcpy(elem, data, sizeof(*elem));
+    else
+        memset(elem, 0, sizeof(*elem));
+    return elem;
+}
+
+IXO_ClassSpecialArrayExt TST_StringArray_class_ext = {
+    .cls = &IXO_string_class,
+    .element_size = sizeof(char*),
+    .push = &TST_StringArray_vpush,
+    .next = NULL // Not implemented yet
+};
+
+IXO_Class TST_StringArray_class = {
+    .type_special_array = {
+        .type = IXO_CLASS_SPECIAL_ARRAY,
+        .ext = &TST_StringArray_class_ext
+    }
+};
+
 typedef struct TST_Person
 {
     char* name;
     uint64_t age;
     TST_Car car;
+    TST_StringArray hobbies;
 } TST_Person;
 
 IXO_STRUCTDEF(TST_Person,
     (name,     &IXO_string_class),
     (age,      &IXO_uint64_class),
-    (car,      &TST_Car_class)
+    (car,      &TST_Car_class),
+    (hobbies,  &TST_StringArray_class)
 );
 
 
@@ -120,20 +172,31 @@ int main()
     if(IXO_DesReadObj(&des, &the_person, &TST_Person_class)==0)
     {
         printf("JSON Object couldn't be read completely\n");
-    };
+    }
     IXO_DesDestruct(&des);
     fclose(file);
 
-    printf("Name: %s, Age: %" PRIu64 "\n",
+    printf("Name: %s\nAge: %" PRIu64 "\n",
            the_person.name,
            the_person.age);
 
-    printf("Type: %s, Velocity: [%f, %f, %f], Flags: %i\n",
+    printf("Car:\n  Type: %s\n  Velocity: [%f, %f, %f]\n  Flags: %i\n",
            TST_CAR_TYPE_STR(the_person.car.type),
            the_person.car.velocity.x,
            the_person.car.velocity.y,
            the_person.car.velocity.z,
            the_person.car.flags);
 
+    printf("Hobbies:\n");
+    for(size_t i = 0; i < the_person.hobbies.size; ++i)
+    {
+        printf("  %i. %s\n", i+1, the_person.hobbies.data[i]);
+    }
+
+    for(size_t i = 0; i < the_person.hobbies.size; ++i)
+    {
+        free(the_person.hobbies.data[i]);
+    }
+    free(the_person.hobbies.data);
     free(the_person.name);
 }

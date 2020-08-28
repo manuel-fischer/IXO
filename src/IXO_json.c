@@ -231,9 +231,52 @@ int IXO_JSON_ReadObject(IXO_DesCtx* ctx, void* obj, IXO_Class const* cls)
 
         case IXO_CLASS_ARRAY:
         {
-            const IXO_ClassTuple* carr = &cls->type_tuple;
+            const IXO_ClassArray* carr = &cls->type_array;
             // dynamic allocation
             // TODO
+        } break;
+
+        case IXO_CLASS_SPECIAL_ARRAY:
+        {
+            const IXO_ClassSpecialArrayExt* xarr = cls->type_special_array.ext;
+            if(xarr->element_size == 0)
+            {
+                if(json_lex->token.type != IXO_JSON_TOK_LEFT_BRACKET) return 0;
+                while(1)
+                {
+                    if(json_lex->token.type != IXO_JSON_TOK_LEFT_BRACKET &&
+                       json_lex->token.type != IXO_JSON_TOK_COMMA) return 0;
+
+                    void* element = xarr->push(obj, NULL);
+                    if(element == NULL) return 0;
+                    memset(element, 0, xarr->element_size);
+                    IXO_JSON_ReadObject(ctx, element, xarr->cls);
+
+                    if(!IXO_JSON_NextToken(ctx)) return 0;
+                    if(json_lex->token.type == IXO_JSON_TOK_RIGHT_BRACKET) break;
+                }
+                return 1;
+            }
+            else
+            {
+                /// Variable length array
+                char buf[xarr->element_size];
+
+                if(json_lex->token.type != IXO_JSON_TOK_LEFT_BRACKET) return 0;
+                while(1)
+                {
+                    if(json_lex->token.type != IXO_JSON_TOK_LEFT_BRACKET &&
+                       json_lex->token.type != IXO_JSON_TOK_COMMA) return 0;
+
+                    memset(buf, 0, xarr->element_size);
+                    IXO_JSON_ReadObject(ctx, buf, xarr->cls);
+                    xarr->push(obj, buf);
+
+                    if(!IXO_JSON_NextToken(ctx)) return 0;
+                    if(json_lex->token.type == IXO_JSON_TOK_RIGHT_BRACKET) break;
+                }
+                return 1;
+            }
         } break;
 
 

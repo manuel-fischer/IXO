@@ -93,6 +93,9 @@
     }
 
 
+//#define IXO_SPECIALARRAYDEF
+
+
 #define IXO_BIT_FIELD_ARR(bit_name, name, value) \
     {#name, (value)},
 

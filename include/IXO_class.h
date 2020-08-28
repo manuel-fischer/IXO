@@ -15,6 +15,7 @@ typedef enum IXO_ClassType
     IXO_CLASS_STRUCT,
     IXO_CLASS_TUPLE,
     IXO_CLASS_ARRAY,
+    IXO_CLASS_SPECIAL_ARRAY,
 
     IXO_CLASS_STRING,
 
@@ -22,6 +23,8 @@ typedef enum IXO_ClassType
     IXO_CLASS_FLAG, // TODO remove
     IXO_CLASS_BITS,
     IXO_CLASS_ENUM,
+
+    IXO_CLASS_POINTER,
 
     //IXO_CLASS_CUSTOM
 
@@ -86,11 +89,62 @@ typedef struct IXO_ClassTuple
     const IXO_TupleField* fields;
 } IXO_ClassTuple;
 
+typedef struct IXO_ClassArrayExt
+{
+    const IXO_Class* cls;
+    size_t element_size;
+    size_t element_count; // should not be 0
+                          // needs to be freed with free
+                          // nonzero value for array with exactly the
+                          // given number of elements.
+} IXO_ClassArrayExt;
+
 typedef struct IXO_ClassArray
 {
     IXO_ClassType type;
-    const IXO_Class* cls;
+    const IXO_ClassArrayExt* ext;
+    //const IXO_Class* cls;
 } IXO_ClassArray;
+
+typedef struct IXO_ClassSpecialArrayExt
+{
+    /**
+     *  The class of the elements
+     */
+    const IXO_Class* cls;
+    /**
+     *  Element size for allocating a temporary buffer
+     *  or 0 to allocate the buffer for an element by calling
+     *  push with data=NULL before reading its contents
+     */
+    size_t element_size;
+    /**
+     *  If data is NULL, an empty slot is requested
+     *     if the array only allows to insert elements that
+     *     are created (like hash tables/associative arrays)
+     *     NULL is returned, a temporary buffer is allocated
+     *     on the stack
+     *  Otherwise push element referenced by data onto the array
+     *     if memory couldn't be allocated, the function push is
+     *     responsible for destroying the contents of data that
+     *     could have been dynamicly allocated by itself.
+     *
+     *  return the address of the inserted element
+     */
+    void* (*push)(void* array, void* data);
+    /**
+     *  Returns pointer to the next element after prev
+     *  or NULL if the end of the array is reached.
+     *  prev is NULL if the first element is requested
+     */
+    void* (*next)(void* array, void* prev);
+} IXO_ClassSpecialArrayExt;
+
+typedef struct IXO_ClassSpecialArray
+{
+    IXO_ClassType type;
+    const IXO_ClassSpecialArrayExt* ext;
+} IXO_ClassSpecialArray;
 
 typedef struct IXO_ClassString
 {
@@ -143,17 +197,31 @@ typedef struct IXO_ClassEnum
     const IXO_EnumOption* fields;
 } IXO_ClassEnum;
 
+/*typedef struct IXO_ClassPointerExt
+{
+    size_t size;
+    const IXO_Class* cls;
+} IXO_ClassPointerExt;
+
+typedef struct IXO_ClassPointer
+{
+    IXO_ClassType type;
+    const IXO_ClassPointerExt* ext;
+} IXO_ClassPointer;*/
+
 union IXO_Class
 {
     IXO_ClassType type;
 
-    IXO_ClassStruct    type_struct;
-    IXO_ClassTuple     type_tuple;
-    IXO_ClassArray     type_array;
-    IXO_ClassString    type_string;
-    IXO_ClassPrimitive type_primitive;
-    IXO_ClassBits      type_bits;
-    IXO_ClassEnum      type_enum;
+    IXO_ClassStruct       type_struct;
+    IXO_ClassTuple        type_tuple;
+    IXO_ClassArray        type_array;
+    IXO_ClassSpecialArray type_special_array;
+    IXO_ClassString       type_string;
+    IXO_ClassPrimitive    type_primitive;
+    IXO_ClassBits         type_bits;
+    IXO_ClassEnum         type_enum;
+    //IXO_ClassPointer      type_pointer;
     //IXO_Custom    type_custom;
 };
 
