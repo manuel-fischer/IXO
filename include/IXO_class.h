@@ -1,5 +1,7 @@
 #pragma once
 
+#include "IXO_pp.h"
+
 #include <stdint.h>
 #include <inttypes.h>
 
@@ -43,9 +45,6 @@ typedef enum IXO_ClassType
     X(IXO_NUM_FLOAT,   float  , "e"   , "e"   )Y() \
     X(IXO_NUM_DOUBLE,  double , "e"   , "le"  )
 
-
-#define IXO_PP_COMMA() ,
-#define IXO_PP_NONE()
 #define IXO_NUM_TYPE_ENUM(enum_name, c_type, pfmt, sfmt) enum_name
 
 typedef enum IXO_NumberType
