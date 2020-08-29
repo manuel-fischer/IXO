@@ -130,17 +130,17 @@ void* TST_StringArray_vpush(void* array, void* data)
     return elem;
 }
 
-void* TST_StringArray_vnext(void* array, void* prev)
+const void* TST_StringArray_vnext(const void* array, const void* prev)
 {
-    TST_StringArray* arr = (TST_StringArray*)array;
+    const TST_StringArray* arr = (TST_StringArray*)array;
 
     if(arr->size == 0)
         return NULL;
     if(prev == NULL)
         return arr->data;
-    if((char**)prev + 1 == arr->data+arr->size)
+    if((char*const*)prev + 1 == arr->data+arr->size)
         return NULL;
-    return (void*)((char**)prev + 1);
+    return (const void*)((char*const*)prev + 1);
 }
 
 IXO_ARRAYDEF(TST_StringArray,
@@ -181,7 +181,7 @@ int main()
            the_person.name,
            the_person.age);
 
-    printf("Car:\n  Type: %s\n  Velocity: [%f, %f, %f]\n  Flags: %i\n",
+    printf("Car:\n  Type: %s\n  Velocity: [%g, %g, %g]\n  Flags: %i\n",
            TST_CAR_TYPE_STR(the_person.car.type),
            the_person.car.velocity.x,
            the_person.car.velocity.y,
@@ -193,6 +193,11 @@ int main()
     {
         printf("  %i. %s\n", i+1, the_person.hobbies.data[i]);
     }
+
+    IXO_Write_FILE(stdout, IXO_JSON, &the_person, &TST_Person_class);
+
+
+
 
     for(size_t i = 0; i < the_person.hobbies.size; ++i)
     {

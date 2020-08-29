@@ -25,10 +25,10 @@ int IXO_Read(const char* filename,
 }
 
 
-int IXO_Read_FILE(FILE* file, IXO_FileType file_reader,
+int IXO_Read_FILE(FILE* file, IXO_FileType file_type,
              void* obj, const IXO_Class* cls)
 {
-    switch(file_reader)
+    switch(file_type)
     {
         case IXO_JSON:
             return IXO_ReadJSON(file, obj, cls);
@@ -39,3 +39,29 @@ int IXO_Read_FILE(FILE* file, IXO_FileType file_reader,
 }
 
 
+
+
+int IXO_Write(const char* filename,
+              const void* obj, const IXO_Class* cls)
+{
+    FILE* file = fopen(filename, "w");
+    if(!file) return 0;
+    int success = IXO_Write_FILE(file, detect_filetype(filename), obj, cls);
+    fclose(file);
+    return success;
+}
+
+
+
+int IXO_Write_FILE(FILE* file, IXO_FileType file_type,
+                   const void* obj, const IXO_Class* cls)
+{
+    switch(file_type)
+    {
+        case IXO_JSON:
+            return IXO_WriteJSON(file, obj, cls);
+
+        default:
+            return 0;
+    }
+}

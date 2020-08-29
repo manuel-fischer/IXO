@@ -13,17 +13,6 @@ IXO_Class IXO_number_class[IXO_NUM_COUNT] = {
     IXO_NUM_TYPE_XY(IXO_NUM_TYPE_CLASS, IXO_PP_COMMA)
 };
 
-IXO_Class IXO_flag_class[8] = {
-    { .type_primitive = { .type = IXO_CLASS_FLAG, .bits =   1 } },
-    { .type_primitive = { .type = IXO_CLASS_FLAG, .bits =   2 } },
-    { .type_primitive = { .type = IXO_CLASS_FLAG, .bits =   4 } },
-    { .type_primitive = { .type = IXO_CLASS_FLAG, .bits =   8 } },
-    { .type_primitive = { .type = IXO_CLASS_FLAG, .bits =  16 } },
-    { .type_primitive = { .type = IXO_CLASS_FLAG, .bits =  32 } },
-    { .type_primitive = { .type = IXO_CLASS_FLAG, .bits =  64 } },
-    { .type_primitive = { .type = IXO_CLASS_FLAG, .bits = 128 } },
-};
-
 
 // TODO: IXO_FindStructField,
 //       IXO_FindBitField and

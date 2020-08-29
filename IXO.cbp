@@ -41,6 +41,7 @@
 		<Unit filename="include/IXO_opt.h" />
 		<Unit filename="include/IXO_pp.h" />
 		<Unit filename="include/IXO_string.h" />
+		<Unit filename="include/IXO_util.h" />
 		<Unit filename="src/IXO.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -54,6 +55,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/IXO_string.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/IXO_util.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="tst/test_IXO.c">

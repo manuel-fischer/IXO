@@ -4,6 +4,7 @@
 #include "IXO_opt.h"
 #include "IXO_string.h"
 #include "IXO_class.h"
+#include "IXO_util.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -63,6 +64,12 @@ typedef struct IXO_JSON_ReadCtx
     FILE* file;
     IXO_JSON_Lexer lexer;
 } IXO_JSON_ReadCtx;
+
+
+void IXO_JSON_DestructReadCtx(IXO_JSON_ReadCtx* ctx)
+{
+    IXO_String_Destroy(&ctx->lexer.token.value);
+}
 
 
 static int IXO_JSON_IsSpace(int c)
@@ -371,22 +378,6 @@ int IXO_JSON_ReadObject(IXO_JSON_ReadCtx* ctx, void* obj, IXO_Class const* cls)
             }
         } break;
 
-        case IXO_CLASS_FLAG:
-        {
-            const IXO_ClassPrimitive* cpri = &cls->type_primitive;
-            if(json_lex->token.type == IXO_JSON_TOK_TRUE)
-            {
-                *((uint8_t*)obj) |= cpri->bits;
-                return 1;
-            }
-            if(json_lex->token.type == IXO_JSON_TOK_FALSE)
-            {
-                *((uint8_t*)obj) &= ~cpri->bits;
-                return 1;
-            }
-            return 0;
-        } break;
-
         case IXO_CLASS_BITS:
         {
             const IXO_ClassBits* cbts = &cls->type_bits;
@@ -432,21 +423,203 @@ int IXO_JSON_ReadObject(IXO_JSON_ReadCtx* ctx, void* obj, IXO_Class const* cls)
 }
 
 
-
-
-void IXO_JSON_DestructContext(IXO_JSON_ReadCtx* ctx)
-{
-    IXO_String_Destroy(&ctx->lexer.token.value);
-}
-
-
 int IXO_ReadJSON(FILE* file, void* obj, IXO_Class const* cls)
 {
     IXO_JSON_ReadCtx ctx = {0};
     ctx.file = file;
     int success = IXO_JSON_ReadObject(&ctx, obj, cls);
-    IXO_JSON_DestructContext(&ctx);
+    IXO_JSON_DestructReadCtx(&ctx);
     return success;
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct IXO_JSON_WriteCtx
+{
+    FILE* file;
+} IXO_JSON_WriteCtx;
+
+
+void IXO_JSON_DestructWriteCtx(IXO_JSON_WriteCtx* ctx)
+{
+}
+
+
+int IXO_JSON_WriteObject(IXO_JSON_WriteCtx* ctx, const void* obj, IXO_Class const* cls)
+{
+    switch(cls->type)
+    {
+        case IXO_CLASS_STRUCT:
+        {
+            const IXO_ClassStruct* cstk = &cls->type_struct;
+            putc('{', ctx->file);
+            for(size_t i = 0;; ++i)
+            {
+                const IXO_StructField* fld = &cstk->fields[i];
+                fprintf(ctx->file, "\"%s\":", fld->name);
+                if(!IXO_JSON_WriteObject(ctx, IXO_SUBOBJECT(obj, fld->offset), fld->cls))
+                    return 0;
+
+                if(cstk->fields[i+1].name == NULL) break;
+                putc(',', ctx->file);
+            }
+            putc('}', ctx->file);
+            return 1;
+        } break;
+
+        case IXO_CLASS_TUPLE:
+        {
+            const IXO_ClassTuple* ctup = &cls->type_tuple;
+            putc('[', ctx->file);
+            for(size_t i = 0;; ++i)
+            {
+                const IXO_TupleField* fld = &ctup->fields[i];
+                if(!IXO_JSON_WriteObject(ctx, IXO_SUBOBJECT(obj, fld->offset), fld->cls))
+                    return 0;
+
+                if(ctup->fields[i+1].cls == NULL) break;
+                putc(',', ctx->file);
+            }
+            putc(']', ctx->file);
+            return 1;
+        } break;
+
+        case IXO_CLASS_FIXED_ARRAY:
+        {
+            const IXO_ClassArray* carr = &cls->type_array;
+            // dynamic allocation
+            // TODO
+        } break;
+
+        case IXO_CLASS_ARRAY:
+        {
+            const IXO_ClassArrayExt* xarr = cls->type_array.ext;
+            putc('[', ctx->file);
+            const void* elem = NULL;
+            int print_comma = 0;
+            while(1)
+            {
+                elem = xarr->next(obj, elem);
+                if(elem == NULL) break;
+
+                if(print_comma)
+                    putc(',', ctx->file);
+
+                IXO_JSON_WriteObject(ctx, elem, xarr->cls);
+                print_comma = 1;
+            }
+            putc(']', ctx->file);
+            return 1;
+        } break;
+
+
+        case IXO_CLASS_STRING:
+        {
+            const IXO_ClassString* cstr = &cls->type_string;
+            const char* str;
+            if(cstr->buf_size == 0)
+                str = *(char**)obj;
+            else
+                str = (char*)obj;
+
+            putc('"', ctx->file);
+            IXO_PrintEscaped(str, ctx->file);
+            putc('"', ctx->file);
+
+            return 1;
+        } break;
+
+        case IXO_CLASS_NUMBER:
+        {
+            const IXO_ClassPrimitive* cpri = &cls->type_primitive;
+
+            switch((IXO_NumberType)cpri->bits)
+            {
+#define X(enum_name, c_type, pfmt, sfmt) \
+                case enum_name: return !!fprintf(ctx->file, "%" pfmt, *(c_type*)(obj));
+
+                IXO_NUM_TYPE_XY(X,IXO_PP_NONE)
+#undef X
+
+                default: IXO_UNREACHABLE();
+            }
+        } break;
+
+        case IXO_CLASS_BITS:
+        {
+            const IXO_ClassBits* cbts = &cls->type_bits;
+
+            uint32_t bits = *(uint32_t*)obj;
+            putc('[', ctx->file);
+            int print_comma = 0;
+            for(size_t i = 0;; ++i)
+            {
+                const IXO_BitField* fld = &cbts->fields[i];
+                if((fld->mask & bits) == fld->mask)
+                {
+                    if(print_comma)
+                        putc(',', ctx->file);
+                    printf("\"%s\"", fld->name);
+                    bits &= ~fld->mask;
+                    print_comma = 1;
+                }
+
+                if(cbts->fields[i+1].name == NULL) break;
+            }
+            putc(']', ctx->file);
+
+            return 1;
+        } break;
+
+        case IXO_CLASS_ENUM:
+        {
+            const IXO_ClassEnum* cenm = &cls->type_enum;
+
+            for(size_t i = 0;; ++i)
+            {
+                const IXO_EnumOption* fld = &cenm->fields[i];
+                if(fld->value == *(uint32_t*)obj)
+                {
+                    printf("\"%s\"", fld->name);
+                    return 1;
+                }
+
+                if(cenm->fields[i+1].name == NULL) break;
+            }
+
+            return 0;
+        } break;
+
+        default: IXO_UNREACHABLE();
+    }
+    IXO_UNREACHABLE();
+}
+
+
+int IXO_WriteJSON(FILE* file, const void* obj, const IXO_Class* cls)
+{
+    IXO_JSON_WriteCtx ctx = {0};
+    ctx.file = file;
+    int success = IXO_JSON_WriteObject(&ctx, obj, cls);
+    IXO_JSON_DestructWriteCtx(&ctx);
+    return success;
+}

@@ -17,7 +17,6 @@ typedef enum IXO_ClassType
     IXO_CLASS_STRING,
 
     IXO_CLASS_NUMBER,
-    IXO_CLASS_FLAG, // TODO remove
     IXO_CLASS_BITS,
     IXO_CLASS_ENUM,
 
@@ -37,8 +36,8 @@ typedef enum IXO_ClassType
     X(IXO_NUM_SINT16, int16_t , PRId16, SCNd16)Y() \
     X(IXO_NUM_SINT32, int32_t , PRId32, SCNd32)Y() \
     X(IXO_NUM_SINT64, int64_t , PRId64, SCNd64)Y() \
-    X(IXO_NUM_FLOAT,  float   , "e"   , "e"   )Y() \
-    X(IXO_NUM_DOUBLE, double  , "e"   , "le"  )
+    X(IXO_NUM_FLOAT,  float   , "g"   , "e"   )Y() \
+    X(IXO_NUM_DOUBLE, double  , "g"   , "le"  )
 
 #define IXO_NUM_TYPE_ENUM(enum_name, c_type, pfmt, sfmt) enum_name
 
@@ -131,7 +130,7 @@ typedef struct IXO_ClassArrayExt
      *  or NULL if the end of the array is reached.
      *  prev is NULL if the first element is requested
      */
-    void* (*next)(void* array, void* prev);
+    const void* (*next)(const void* array, const void* prev);
 } IXO_ClassArrayExt;
 
 typedef struct IXO_ClassArray
@@ -222,8 +221,7 @@ union IXO_Class
 
 // All Special
 IXO_Class IXO_string_class, // if null -> NULL as char*
-          IXO_number_class[IXO_NUM_COUNT], // index by enum
-          IXO_flag_class[8]; // only accesses byte: true, false
+          IXO_number_class[IXO_NUM_COUNT]; // index by enum
 
 
 #define IXO_uint8_class  (IXO_number_class[IXO_NUM_UINT8])
