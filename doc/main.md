@@ -1,6 +1,6 @@
 # The IXO Input-Output Library Documentation
 
-## Hello World example
+## Hello World example - Reading
 
 **test.json**
 ```json
@@ -32,14 +32,8 @@ IXO_STRUCTDEF(Person,
 
 int main()
 {
-    FILE* file = fopen("test.json", "r");
-    if(!file) return 1;
-    
-    IXO_DesCtx des;
-    IXO_DesConstruct(&des, file, IXO_JSON);
-    
     TST_Person the_person = {0};
-    if(!IXO_DesReadObj(&des, &the_person, &Person_class))
+    if(!IXO_Read("test.json", &the_person, &Person_class))
     {
         printf("Object couldn't be read completely\n");
     }
@@ -47,8 +41,6 @@ int main()
     {
         printf("%s is %" PRIu64 " years old\n", the_person.name, the_person.age);
     }
-    IXO_DesDestruct(&des);
-    fclose(file);
     
     free(the_person.name);
 }
@@ -119,27 +111,10 @@ can be used with the type name. Here it would be `IXO_DECLARE_CLASS(Person);`.
 
 Note the trailing semicolon, semicolons are needed after any of these macros.
 
-#### 3. Creating and destroying a deserialization context
-
-```c
-IXO_DesCtx des;
-IXO_DesConstruct(&des, file, IXO_JSON);
-...
-IXO_DesDestruct(&des);
-```
-
-To deserialize an object a deserialization context is needed, which stores
-state and keeps a pointer to the file/stream, from which the data is read.
-Currently it is only used for reading, but in the future it might provide
-error information like the line number on which an error occurred.
-The file itself is not closed by `IXO_DesDestruct` and should be closed
-by the caller.
-
-
-#### 4. Reading the object
+#### 3. Reading the object
 ```c
 TST_Person the_person = {0};
-if(!IXO_DesReadObj(&des, &the_person, &Person_class))
+if(!IXO_Read("test.json", &the_person, &Person_class))
 {
     printf("Object couldn't be read completely\n");
 }
@@ -149,12 +124,18 @@ else
 }
 ```
 
-To read an object from the context, the function `IXO_DesReadObj` is called.
-The first parameter is the pointer to the deserialization context. The second
+To read an object from a file, the function `IXO_Read` is called.
+The first parameter is the filename. The second
 is a pointer to the object that gets filled with data. The last parameter
 is the class that provides type information of the object.
+The function auto-detects the file type from the filename, that is
+corresponding to the enum value `IXO_JSON`.
 
-The object itself should be filled with the default values. 
+The object itself should be filled with the default values.
+
+The function `IXO_Read_FILE` takes a `FILE*` instead of a filename. The file
+type cannot be detected in this case, so an additional `IXO_FileType` parameter
+should be passed.
 
 ### Structs vs Tuples
 

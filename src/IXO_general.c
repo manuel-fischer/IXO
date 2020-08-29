@@ -1,24 +1,41 @@
 #include "IXO_general.h"
+#include "IXO_json.h"
 
 #include <string.h>
 
-void IXO_DesConstruct(IXO_DesCtx* ctx, FILE* file, IXO_FileType file_reader)
+static inline
+IXO_FileType detect_filetype(const char* filename)
 {
-    (void)file_reader; // currently only json supported
+    size_t filename_len = strlen(filename);
+    if(filename_len >= 5 && strcmp(filename+filename_len-5, ".json")==0)
+        return IXO_JSON;
 
-    memset(ctx, 0, sizeof *ctx);
-    ctx->read_object = &IXO_JSON_ReadObject;
-    //ctx->write_object = &IXO_JSON_ReadObject; TODO
-    ctx->destruct_context = &IXO_JSON_DestructContext;
-    ctx->file = file;
+    return IXO_UNKNOWN_TYPE;
 }
 
-void IXO_DesDestruct(IXO_DesCtx* ctx)
+
+int IXO_Read(const char* filename,
+             void* obj, const IXO_Class* cls)
 {
-    (*ctx->destruct_context)(ctx);
+    FILE* file = fopen(filename, "r");
+    if(!file) return 0;
+    int success = IXO_Read_FILE(file, detect_filetype(filename), obj, cls);
+    fclose(file);
+    return success;
 }
 
-int IXO_DesReadObj(IXO_DesCtx* ctx, void* data_out, IXO_Class const* cls)
+
+int IXO_Read_FILE(FILE* file, IXO_FileType file_reader,
+             void* obj, const IXO_Class* cls)
 {
-    return (*ctx->read_object)(ctx, data_out, cls);
+    switch(file_reader)
+    {
+        case IXO_JSON:
+            return IXO_ReadJSON(file, obj, cls);
+
+        default:
+            return 0;
+    }
 }
+
+

@@ -130,19 +130,25 @@ void* TST_StringArray_vpush(void* array, void* data)
     return elem;
 }
 
-IXO_ClassSpecialArrayExt TST_StringArray_class_ext = {
-    .cls = &IXO_string_class,
-    .element_size = sizeof(char*),
-    .push = &TST_StringArray_vpush,
-    .next = NULL // Not implemented yet
-};
+void* TST_StringArray_vnext(void* array, void* prev)
+{
+    TST_StringArray* arr = (TST_StringArray*)array;
 
-IXO_Class TST_StringArray_class = {
-    .type_special_array = {
-        .type = IXO_CLASS_SPECIAL_ARRAY,
-        .ext = &TST_StringArray_class_ext
-    }
-};
+    if(arr->size == 0)
+        return NULL;
+    if(prev == NULL)
+        return arr->data;
+    if((char**)prev + 1 == arr->data+arr->size)
+        return NULL;
+    return (void*)((char**)prev + 1);
+}
+
+IXO_ARRAYDEF(TST_StringArray,
+    &IXO_string_class,
+    sizeof(char*),
+    &TST_StringArray_vpush,
+    &TST_StringArray_vnext
+);
 
 typedef struct TST_Person
 {
@@ -163,18 +169,13 @@ IXO_STRUCTDEF(TST_Person,
 
 int main()
 {
-    FILE* file = fopen("./tst/tst1.json", "r");
-    if(!file) return 1;
-    IXO_DesCtx des;
-    IXO_DesConstruct(&des, file, IXO_JSON);
+    static const char filename[] = "./tst/tst1.json";
 
     TST_Person the_person = {0};
-    if(IXO_DesReadObj(&des, &the_person, &TST_Person_class)==0)
+    if(IXO_Read(filename, &the_person, &TST_Person_class)==0)
     {
         printf("JSON Object couldn't be read completely\n");
     }
-    IXO_DesDestruct(&des);
-    fclose(file);
 
     printf("Name: %s\nAge: %" PRIu64 "\n",
            the_person.name,

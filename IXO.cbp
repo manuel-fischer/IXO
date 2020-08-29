@@ -39,6 +39,7 @@
 		<Unit filename="include/IXO_general.h" />
 		<Unit filename="include/IXO_json.h" />
 		<Unit filename="include/IXO_opt.h" />
+		<Unit filename="include/IXO_pp.h" />
 		<Unit filename="include/IXO_string.h" />
 		<Unit filename="src/IXO.c">
 			<Option compilerVar="CC" />

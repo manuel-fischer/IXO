@@ -1,9 +1,69 @@
 #include "IXO_json.h"
+
 #include "IXO_general.h"
 #include "IXO_opt.h"
+#include "IXO_string.h"
+#include "IXO_class.h"
 
 #include <stdio.h>
 #include <string.h>
+
+
+
+// https://www.json.org/json-en.html
+
+typedef enum IXO_JSON_TokenType
+{
+    IXO_JSON_TOK_NONE = 0, // not null, yielded when EOF reached
+
+    IXO_JSON_TOK_LEFT_BRACE,    // {
+    IXO_JSON_TOK_RIGHT_BRACE,   // }
+    IXO_JSON_TOK_LEFT_BRACKET,  // [
+    IXO_JSON_TOK_RIGHT_BRACKET, // ]
+    IXO_JSON_TOK_COLON,
+    IXO_JSON_TOK_COMMA,
+
+    IXO_JSON_TOK_STRING, // first and last " not stored in value
+    IXO_JSON_TOK_NUMBER,
+    IXO_JSON_TOK_TRUE,
+    IXO_JSON_TOK_FALSE,
+    IXO_JSON_TOK_NULL,
+} IXO_JSON_TokenType;
+
+typedef struct IXO_JSON_Token
+{
+    IXO_JSON_TokenType type;
+    IXO_String value;
+} IXO_JSON_Token;
+
+typedef struct IXO_JSON_Lexer
+{
+    int curchar; // int because EOF should be stored
+    IXO_JSON_Token token;
+} IXO_JSON_Lexer;
+
+
+
+typedef enum IXO_JSON_ValueType
+{
+    IXO_JSON_VALUE_OBJECT,
+    IXO_JSON_VALUE_ARRAY,
+    IXO_JSON_VALUE_STRING,
+    IXO_JSON_VALUE_NUMBER,
+    IXO_JSON_VALUE_TRUE,
+    IXO_JSON_VALUE_FALSE,
+    IXO_JSON_VALUE_NULL
+} IXO_JSON_ValueType;
+
+
+
+
+typedef struct IXO_JSON_ReadCtx
+{
+    FILE* file;
+    IXO_JSON_Lexer lexer;
+} IXO_JSON_ReadCtx;
+
 
 static int IXO_JSON_IsSpace(int c)
 {
@@ -14,10 +74,9 @@ static int IXO_JSON_IsSpace(int c)
 /**
  *  Return nonzero on success, 0 on failure
  */
-static int IXO_JSON_NextToken(IXO_DesCtx* ctx)
+static int IXO_JSON_NextToken(IXO_JSON_ReadCtx* ctx)
 {
-    IXO_JSON_Ctx* json_ctx = &ctx->data_json;
-    IXO_JSON_Lexer* json_lex = &json_ctx->lexer;
+    IXO_JSON_Lexer* json_lex = &ctx->lexer;
 
 
     if(json_lex->curchar == 0)
@@ -132,10 +191,9 @@ static int IXO_JSON_NextToken(IXO_DesCtx* ctx)
 
 
 
-static int IXO_JSON_SkipObject(IXO_DesCtx* ctx)
+static int IXO_JSON_SkipObject(IXO_JSON_ReadCtx* ctx)
 {
-    IXO_JSON_Ctx* json_ctx = &ctx->data_json;
-    IXO_JSON_Lexer* json_lex = &json_ctx->lexer;
+    IXO_JSON_Lexer* json_lex = &ctx->lexer;
 
     int depth = 0;
 
@@ -176,10 +234,9 @@ static int IXO_JSON_SkipObject(IXO_DesCtx* ctx)
 
 
 
-int IXO_JSON_ReadObject(IXO_DesCtx* ctx, void* obj, IXO_Class const* cls)
+int IXO_JSON_ReadObject(IXO_JSON_ReadCtx* ctx, void* obj, IXO_Class const* cls)
 {
-    IXO_JSON_Ctx* json_ctx = &ctx->data_json;
-    IXO_JSON_Lexer* json_lex = &json_ctx->lexer;
+    IXO_JSON_Lexer* json_lex = &ctx->lexer;
 
     if(!IXO_JSON_NextToken(ctx)) return 0;
     if(json_lex->token.type == IXO_JSON_TOK_NULL) return 1; // Keep "default" Value
@@ -229,16 +286,16 @@ int IXO_JSON_ReadObject(IXO_DesCtx* ctx, void* obj, IXO_Class const* cls)
             return 1;
         } break;
 
-        case IXO_CLASS_ARRAY:
+        case IXO_CLASS_FIXED_ARRAY:
         {
             const IXO_ClassArray* carr = &cls->type_array;
             // dynamic allocation
             // TODO
         } break;
 
-        case IXO_CLASS_SPECIAL_ARRAY:
+        case IXO_CLASS_ARRAY:
         {
-            const IXO_ClassSpecialArrayExt* xarr = cls->type_special_array.ext;
+            const IXO_ClassArrayExt* xarr = cls->type_array.ext;
             if(xarr->element_size == 0)
             {
                 if(json_lex->token.type != IXO_JSON_TOK_LEFT_BRACKET) return 0;
@@ -377,16 +434,19 @@ int IXO_JSON_ReadObject(IXO_DesCtx* ctx, void* obj, IXO_Class const* cls)
 
 
 
-
-
-
-
-
-
-
-
-
-void IXO_JSON_DestructContext(IXO_DesCtx* ctx)
+void IXO_JSON_DestructContext(IXO_JSON_ReadCtx* ctx)
 {
-    IXO_String_Destroy(&ctx->data_json.lexer.token.value);
+    IXO_String_Destroy(&ctx->lexer.token.value);
 }
+
+
+int IXO_ReadJSON(FILE* file, void* obj, IXO_Class const* cls)
+{
+    IXO_JSON_ReadCtx ctx = {0};
+    ctx.file = file;
+    int success = IXO_JSON_ReadObject(&ctx, obj, cls);
+    IXO_JSON_DestructContext(&ctx);
+    return success;
+}
+
+

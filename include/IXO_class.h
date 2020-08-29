@@ -7,17 +7,12 @@
 
 #define IXO_SUBOBJECT(obj, offset) ((void*)((char*)(obj) + (offset)))
 
-typedef enum IXO_FileType
-{
-    IXO_JSON
-} IXO_FileType;
-
 typedef enum IXO_ClassType
 {
     IXO_CLASS_STRUCT,
     IXO_CLASS_TUPLE,
+    IXO_CLASS_FIXED_ARRAY,
     IXO_CLASS_ARRAY,
-    IXO_CLASS_SPECIAL_ARRAY,
 
     IXO_CLASS_STRING,
 
@@ -38,12 +33,12 @@ typedef enum IXO_ClassType
     X(IXO_NUM_UINT16, uint16_t, PRIu16, SCNu16)Y() \
     X(IXO_NUM_UINT32, uint32_t, PRIu32, SCNu32)Y() \
     X(IXO_NUM_UINT64, uint64_t, PRIu64, SCNu64)Y() \
-    X(IXO_NUM_SINT8,   int8_t , PRId8 , SCNd8 )Y() \
-    X(IXO_NUM_SINT16,  int16_t, PRId16, SCNd16)Y() \
-    X(IXO_NUM_SINT32,  int32_t, PRId32, SCNd32)Y() \
-    X(IXO_NUM_SINT64,  int64_t, PRId64, SCNd64)Y() \
-    X(IXO_NUM_FLOAT,   float  , "e"   , "e"   )Y() \
-    X(IXO_NUM_DOUBLE,  double , "e"   , "le"  )
+    X(IXO_NUM_SINT8,  int8_t  , PRId8 , SCNd8 )Y() \
+    X(IXO_NUM_SINT16, int16_t , PRId16, SCNd16)Y() \
+    X(IXO_NUM_SINT32, int32_t , PRId32, SCNd32)Y() \
+    X(IXO_NUM_SINT64, int64_t , PRId64, SCNd64)Y() \
+    X(IXO_NUM_FLOAT,  float   , "e"   , "e"   )Y() \
+    X(IXO_NUM_DOUBLE, double  , "e"   , "le"  )
 
 #define IXO_NUM_TYPE_ENUM(enum_name, c_type, pfmt, sfmt) enum_name
 
@@ -88,7 +83,7 @@ typedef struct IXO_ClassTuple
     const IXO_TupleField* fields;
 } IXO_ClassTuple;
 
-typedef struct IXO_ClassArrayExt
+typedef struct IXO_ClassFixedArrayExt
 {
     const IXO_Class* cls;
     size_t element_size;
@@ -96,16 +91,16 @@ typedef struct IXO_ClassArrayExt
                           // needs to be freed with free
                           // nonzero value for array with exactly the
                           // given number of elements.
-} IXO_ClassArrayExt;
+} IXO_ClassFixedArrayExt;
 
-typedef struct IXO_ClassArray
+typedef struct IXO_ClassFixedArray
 {
     IXO_ClassType type;
-    const IXO_ClassArrayExt* ext;
+    const IXO_ClassFixedArrayExt* ext;
     //const IXO_Class* cls;
-} IXO_ClassArray;
+} IXO_ClassFixedArray;
 
-typedef struct IXO_ClassSpecialArrayExt
+typedef struct IXO_ClassArrayExt
 {
     /**
      *  The class of the elements
@@ -137,13 +132,13 @@ typedef struct IXO_ClassSpecialArrayExt
      *  prev is NULL if the first element is requested
      */
     void* (*next)(void* array, void* prev);
-} IXO_ClassSpecialArrayExt;
+} IXO_ClassArrayExt;
 
-typedef struct IXO_ClassSpecialArray
+typedef struct IXO_ClassArray
 {
     IXO_ClassType type;
-    const IXO_ClassSpecialArrayExt* ext;
-} IXO_ClassSpecialArray;
+    const IXO_ClassArrayExt* ext;
+} IXO_ClassArray;
 
 typedef struct IXO_ClassString
 {
@@ -214,8 +209,8 @@ union IXO_Class
 
     IXO_ClassStruct       type_struct;
     IXO_ClassTuple        type_tuple;
+    IXO_ClassFixedArray   type_fixed_array;
     IXO_ClassArray        type_array;
-    IXO_ClassSpecialArray type_special_array;
     IXO_ClassString       type_string;
     IXO_ClassPrimitive    type_primitive;
     IXO_ClassBits         type_bits;

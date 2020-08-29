@@ -44,7 +44,19 @@
     }
 
 
-//#define IXO_SPECIALARRAYDEF
+#define IXO_ARRAYDEF(name, cont_cls, cont_size, cont_push, cont_next) \
+    IXO_ClassArrayExt name##_class_ext = { \
+        .cls = (cont_cls), \
+        .element_size = (cont_size), \
+        .push = (cont_push), \
+        .next = (cont_next) \
+    }; \
+    IXO_Class TST_StringArray_class = { \
+        .type_array = { \
+            .type = IXO_CLASS_ARRAY, \
+            .ext = &name##_class_ext \
+        } \
+    };
 
 
 #define IXO_BIT_FIELD_ARR(bit_name, name, value) \

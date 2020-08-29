@@ -1,33 +1,39 @@
 #pragma once
 
 #include "IXO_class.h"
-#include "IXO_json.h"
-
 #include <stdio.h>
 
-typedef struct IXO_DesCtx
+
+typedef enum IXO_FileType
 {
-    FILE* file;
-    int  (*read_object)(IXO_DesCtx* ctx, void* data_out, IXO_Class const* cls);
-    int  (*write_object)(IXO_DesCtx* ctx, void* data_in, IXO_Class const* cls);
-    void (*destruct_context)(IXO_DesCtx* ctx);
-    union
-    {
-        void* data;
-        IXO_JSON_Ctx data_json;
-    };
-} IXO_DesCtx;
+    IXO_UNKNOWN_TYPE,
+    IXO_JSON
+} IXO_FileType;
+
 
 /**
- *  Creates Deserialisation context,
- *  It does not take ownership of the file,
- *  so the file needs to be closed by the caller
+ *  Load object from file to obj using the binary format specified
+ *  by cls, it does not close file
+ *  Return nonzero on success
  */
-void IXO_DesConstruct(IXO_DesCtx* ctx, FILE* file, IXO_FileType file_reader);
-/**
- *  Destructs Deserialisation context,
- *  It does not close the file
- */
-void IXO_DesDestruct(IXO_DesCtx* ctx);
+int IXO_Read(const char* filename,
+             void* obj, const IXO_Class* cls);
 
-int  IXO_DesReadObj(IXO_DesCtx* ctx, void* data_out, IXO_Class const* cls);
+
+/**
+ *  Load object from file to obj using the binary format specified
+ *  by cls, it does not close file
+ *  Return nonzero on success
+ */
+int IXO_Read_FILE(FILE* file, IXO_FileType file_type,
+                  void* obj, const IXO_Class* cls);
+
+
+
+
+
+int IXO_Write(const char* filename,
+              const void* obj, const IXO_Class* cls);
+
+int IXO_Write_FILE(FILE* file, IXO_FileType file_type,
+                   const void* obj, const IXO_Class* cls);
