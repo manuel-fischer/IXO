@@ -14,7 +14,7 @@
 
 **main.c**
 ```c
-#include <IXO.h>
+#include <IXO/IXO.h>
 
 #include <stdint.h> // -> uint64_t
 #include <stdio.h>  // -> FILE
@@ -49,8 +49,11 @@ int main()
 ### Step by step explanation
 #### 1. Inclusion of `IXO.h`
 ```c
-#include <IXO.h>
+#include <IXO/IXO.h>
 ```
+When installing library files with `install.py`, the header files are
+placed to the `IXO/` directory in the include directory
+
 It is sufficient to include `IXO.h` to use the library, specialized files like
 `IXO_classdef.h` could be included in files that only define type information
 but do not read/write any objects.

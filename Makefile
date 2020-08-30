@@ -17,17 +17,17 @@ CFLAGS = -O3
 INCLUDES = -Iinclude
 
 .PHONY: build-lib
-build-lib: lib/ixo.a
+build-lib: lib/libIXO.a
 #	$(MAKE) -C ./src/ build
 
 obj/%.o: src/%.c
 	$(CC) $(CFLAGS) -c $< $(INCLUDES) -o $@
 
-lib/ixo.a: $(OBJ_FILES)
+lib/libIXO.a: $(OBJ_FILES)
 	ar rvs $@ $(OBJ_FILES)
 
-bin/test_IXO: tst/test_IXO.c lib/ixo.a
-	$(CC) $(CFLAGS) tst/test_IXO.c lib/ixo.a $(INCLUDES) -o $@
+bin/test_IXO: tst/test_IXO.c lib/libIXO.a
+	$(CC) $(CFLAGS) tst/test_IXO.c lib/libIXO.a $(INCLUDES) -o $@
 
 .PHONY: build-test test
 build-test: bin/test_IXO	
