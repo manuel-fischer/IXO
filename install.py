@@ -5,11 +5,14 @@ import shutil
 # include and lib directories should end in include and lib
 STRICT_PATHS = True
 
+MAKE = "mingw32-make" if os.name == "nt" else "make"
+WHICH = "where" if os.name == "nt" else "which"
+
 def find_exe(name):
-    cmd = "where" if os.name == "nt" else "which"
-    with os.popen("%s %s"%(cmd, name)) as f:
+    with os.popen("%s %s"%(WHICH, name)) as f:
         return f.read().strip()
 
+    
 
 def check_directory(path, suffix):
         if STRICT_PATHS and not path.endswith(suffix):
@@ -50,6 +53,9 @@ def noisy_copy(src, dst):
         print("copy failed")
         raise
 
+def noisy_system(cmd):
+    print(cmd)
+    return os.system(cmd)
 
 if __name__ == "__main__":        
     while True:
@@ -76,7 +82,7 @@ if __name__ == "__main__":
 
 
     print("Building library")
-    os.system("make build-lib")
+    noisy_system("%s %s"%(MAKE, "build-lib"))
 
     ixo_include_dir = include_dir+"/IXO"
 
