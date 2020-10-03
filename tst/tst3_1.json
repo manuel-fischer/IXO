@@ -1,0 +1,10 @@
+{
+    "string_array_field": [
+        "string 0",
+        "string 1",
+        "string 2"
+    ],
+    "triple_field":  [0, 1, 2],
+    "enum_field":    "ENUM 0",
+    "bitset_field":  ["BIT 0", "BIT 1"]
+}

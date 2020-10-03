@@ -51,7 +51,7 @@
         .push = (cont_push), \
         .next = (cont_next) \
     }; \
-    IXO_Class TST_StringArray_class = { \
+    IXO_Class name##_class = { \
         .type_array = { \
             .type = IXO_CLASS_ARRAY, \
             .ext = &name##_class_ext \

@@ -2,5 +2,6 @@
 IXO.h
 IXO_class.h
 IXO_classdef.h
+IXO_error.h
 IXO_general.h
 IXO_pp.h

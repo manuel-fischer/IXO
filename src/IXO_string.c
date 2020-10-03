@@ -1,5 +1,7 @@
 #include "IXO_string.h"
 
+#include "IXO_error_msg.h"
+
 #include <string.h>
 #include <stdlib.h>
 
@@ -18,39 +20,44 @@ void IXO_String_Destroy(IXO_String* str)
     free(str->data);
 }
 
-void IXO_String_CopyCStr(IXO_String* str, char const* src)
+int IXO_String_CopyCStr(IXO_String* str, char const* src)
 {
     size_t size = strlen(src);
     if(size == 0)
     {
         IXO_String_Clear(str);
-        return;
+        return 1;
     }
 
-    if(IXO_String_Alloc(str, size))
-        memcpy(str->data, src, size+1);
+    if(!IXO_String_Alloc(str, size)) return 0;
+
+    memcpy(str->data, src, size+1);
+    return 1;
 }
 
-void IXO_String_Copy(IXO_String* str, IXO_String const* src)
+int IXO_String_Copy(IXO_String* str, IXO_String const* src)
 {
     if(src->capacity)
-        IXO_String_CopyCStr(str, src->data);
-    else
-        IXO_String_Clear(str);
+        return IXO_String_CopyCStr(str, src->data);
+
+    IXO_String_Clear(str);
+    return 1;
 }
 
 
-void IXO_String_InitCopyCStr(IXO_String* str, char const* src)
+int IXO_String_InitCopyCStr(IXO_String* str, char const* src)
 {
     IXO_String_Init(str);
-    IXO_String_CopyCStr(str, src);
+    return IXO_String_CopyCStr(str, src);
 }
 
-void IXO_String_InitCopy(IXO_String* str, IXO_String const* src)
+int IXO_String_InitCopy(IXO_String* str, IXO_String const* src)
 {
     IXO_String_Init(str);
     if(src->capacity)
-        IXO_String_CopyCStr(str, src->data);
+        return IXO_String_CopyCStr(str, src->data);
+
+    return 1;
 }
 
 void IXO_String_Clear(IXO_String* str)
@@ -58,32 +65,35 @@ void IXO_String_Clear(IXO_String* str)
     if(str->capacity) str->data[0] = '\0';
 }
 
-void IXO_String_AppendChar(IXO_String* str, char c)
+int IXO_String_AppendChar(IXO_String* str, char c)
 {
     size_t pos = IXO_String_Size(str);
-    if(IXO_String_Alloc(str, pos+1))
-    {
-        str->data[pos] = c;
-        str->data[pos+1] = '\0';
-    }
+    if(!IXO_String_Alloc(str, pos+1)) return 0;
+
+    str->data[pos] = c;
+    str->data[pos+1] = '\0';
+    return 1;
 }
 
-void IXO_String_AppendCStr(IXO_String* str, char const* src)
+int IXO_String_AppendCStr(IXO_String* str, char const* src)
 {
     size_t pos = IXO_String_Size(str);
     size_t size = strlen(src);
-    if(size && IXO_String_Alloc(str, pos+size))
+    if(size)
     {
+        if(!IXO_String_Alloc(str, pos+size)) return 0;
         memcpy(str->data+pos, src, size+1);
     }
+    return 1;
 }
 
-void IXO_String_Append(IXO_String* str, IXO_String const* src)
+int IXO_String_Append(IXO_String* str, IXO_String const* src)
 {
     if(src->capacity)
     {
-        IXO_String_AppendCStr(str, src->data);
+        return IXO_String_AppendCStr(str, src->data);
     }
+    return 0;
 }
 
 char const* IXO_String_CStr(IXO_String const* str)
@@ -107,7 +117,8 @@ static int IXO_String_Alloc(IXO_String* str, size_t min_size)
         size_t new_capacity = str->capacity==0 ? 1 : str->capacity;
         while(new_capacity < min_size+1) new_capacity <<= 1;
         char* new_data = realloc(str->data, new_capacity);
-        if(new_data == NULL) return 0;
+        if(new_data == NULL)
+            return IXO_ErrorMsg_MemoryError_errno();
         str->capacity = new_capacity;
         str->data = new_data;
     }
@@ -142,7 +153,7 @@ int IXO_String_Unescape(IXO_String* str)
                     if     (c >= '0' && c <= '9') digit = c-'0';
                     else if(c >= 'A' && c <= 'F') digit = c-'A'+10;
                     else if(c >= 'a' && c <= 'f') digit = c-'a'+10;
-                    else return 0;
+                    else return IXO_ErrorMsg_InvalidEscapeSequence();
                     codepoint <<= 4;
                     codepoint  |= digit;
                 }

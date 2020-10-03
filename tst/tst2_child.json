@@ -1,0 +1,5 @@
+{
+    "!inherit": "./tst/tst2_parent.json",
+    "field2": "overwritten by child",
+    "field3": "set by child"
+}

@@ -3,11 +3,15 @@
 #include "IXO_general.h"
 #include "IXO_opt.h"
 #include "IXO_string.h"
+#include "IXO_error.h"
+#include "IXO_error_msg.h"
+#include "IXO_error_ctx.h"
 #include "IXO_class.h"
 #include "IXO_util.h"
 
 #include <stdio.h>
-#include <string.h>
+#include <stdlib.h> // -> free
+#include <string.h> // -> strdup (C2x/POSIX)
 
 
 
@@ -62,7 +66,12 @@ typedef enum IXO_JSON_ValueType
 typedef struct IXO_JSON_ReadCtx
 {
     FILE* file;
+    const IXO_FileOpener* file_open;
+    const char* fname;
+    int prev_line, prev_column; // for error output
+    int line, column; // for error output
     IXO_JSON_Lexer lexer;
+    int flags;
 } IXO_JSON_ReadCtx;
 
 
@@ -77,24 +86,55 @@ static int IXO_JSON_IsSpace(int c)
     return c == ' ' || c == '\n' || c == '\r' || c == '\t' || c == '\v';
 }
 
+static int IXO_JSON_GetChar(IXO_JSON_ReadCtx* ctx)
+{
+    int chr = fgetc(ctx->file);
+    if(chr == '\n')
+    {
+        ctx->line++;
+        ctx->column = 1;
+    }
+    else if(chr != EOF)
+    {
+        ctx->column++;
+    }
+    return chr;
+}
+
+static int IXO_JSON_GetStr(IXO_JSON_ReadCtx* ctx, char* buf, size_t len)
+{
+    //fread(buf, 1, len, file);
+    for(int i = 0; i < len; ++i)
+    {
+        int chr = IXO_JSON_GetChar(ctx);
+        if(chr == EOF) {
+            buf[i] = '\0';
+            return 0;
+        }
+        buf[i] = chr;
+    }
+    return 1;
+}
 
 /**
  *  Return nonzero on success, 0 on failure
  */
 static int IXO_JSON_NextToken(IXO_JSON_ReadCtx* ctx)
 {
-    IXO_JSON_Lexer* json_lex = &ctx->lexer;
+    IXO_JSON_Lexer* lexer = &ctx->lexer;
 
+    if(lexer->curchar == 0)
+        lexer->curchar = IXO_JSON_GetChar(ctx);
+    int c = lexer->curchar;
+    lexer->curchar = '\0';
+    while(IXO_JSON_IsSpace(c)) c = IXO_JSON_GetChar(ctx); // ignore whitespace
 
-    if(json_lex->curchar == 0)
-        json_lex->curchar = fgetc(ctx->file);
-    int c = json_lex->curchar;
-    json_lex->curchar = '\0';
-    while(IXO_JSON_IsSpace(c)) c = fgetc(ctx->file); // ignore whitespace
-
-    IXO_JSON_Token* tok = &json_lex->token;
+    IXO_JSON_Token* tok = &lexer->token;
 
     IXO_String_Clear(&tok->value);
+
+    ctx->prev_line = ctx->line;       // keeps same line when stepping a char back
+    ctx->prev_column = ctx->column-(c!=EOF); // because the character is not space
 
     if(c == EOF)
     {
@@ -139,15 +179,15 @@ static int IXO_JSON_NextToken(IXO_JSON_ReadCtx* ctx)
         // read string literal
         while(1)
         {
-            c = fgetc(ctx->file);
-            if(c == EOF) return 0;
+            c = IXO_JSON_GetChar(ctx);
+            if(c == EOF) return IXO_ErrorMsg_UnterminatedString();
             if(c == '"') return 1;
-            IXO_String_AppendChar(&tok->value, c);
+            if(!IXO_String_AppendChar(&tok->value, c)) return 0;
             if(c =='\\') // skip "-check for next char
             {
-                c = fgetc(ctx->file);
-                if(c == EOF) return 0;
-                IXO_String_AppendChar(&tok->value, c);
+                c = IXO_JSON_GetChar(ctx);
+                if(c == EOF) return IXO_ErrorMsg_UnterminatedString();
+                if(!IXO_String_AppendChar(&tok->value, c)) return 0;
             }
         }
     }
@@ -159,40 +199,40 @@ static int IXO_JSON_NextToken(IXO_JSON_ReadCtx* ctx)
         // read number
         do
         {
-            IXO_String_AppendChar(&tok->value, c);
-            c = fgetc(ctx->file);
+            if(!IXO_String_AppendChar(&tok->value, c)) return 0;
+            c = IXO_JSON_GetChar(ctx);
         }
         while(c == '-' || c == '.' || (c >= '0' && c <= '9') || c == 'E' || c == 'e' || c == '+');
-        json_lex->curchar = c;
+        lexer->curchar = c;
         return 1;
     }
     else if(c == 't') // true
     {
         char tmp_buf[4] = {0};
-        fread(tmp_buf, 1, 3, ctx->file);
-        if(memcmp(tmp_buf, "rue\0", 4) != 0) return 0; // 32-bit word compare
+        IXO_JSON_GetStr(ctx, tmp_buf, 3);
+        if(memcmp(tmp_buf, "rue\0", 4) != 0) return IXO_ErrorMsg_InvalidSyntax(); // 32-bit word compare
         tok->type = IXO_JSON_TOK_TRUE;
         return 1;
     }
     else if(c == 'f') // false
     {
         char tmp_buf[4] = {0};
-        fread(tmp_buf, 1, 4, ctx->file);
-        if(memcmp(tmp_buf, "alse", 4) != 0) return 0; // 32-bit word compare
+        IXO_JSON_GetStr(ctx, tmp_buf, 4);
+        if(memcmp(tmp_buf, "alse", 4) != 0) return IXO_ErrorMsg_InvalidSyntax(); // 32-bit word compare
         tok->type = IXO_JSON_TOK_FALSE;
         return 1;
     }
     else if(c == 'n') // false
     {
         char tmp_buf[4] = {0};
-        fread(tmp_buf, 1, 3, ctx->file);
-        if(memcmp(tmp_buf, "ull\0", 4) != 0) return 0; // 32-bit word compare
+        IXO_JSON_GetStr(ctx, tmp_buf, 3);
+        if(memcmp(tmp_buf, "ull\0", 4) != 0) return IXO_ErrorMsg_InvalidSyntax(); // 32-bit word compare
         tok->type = IXO_JSON_TOK_NULL;
         return 1;
     }
     else
     {
-        return 0;
+        return IXO_ErrorMsg_InvalidSyntax();
     }
 }
 
@@ -200,7 +240,7 @@ static int IXO_JSON_NextToken(IXO_JSON_ReadCtx* ctx)
 
 static int IXO_JSON_SkipObject(IXO_JSON_ReadCtx* ctx)
 {
-    IXO_JSON_Lexer* json_lex = &ctx->lexer;
+    IXO_JSON_Lexer* lexer = &ctx->lexer;
 
     int depth = 0;
 
@@ -208,7 +248,7 @@ static int IXO_JSON_SkipObject(IXO_JSON_ReadCtx* ctx)
     {
         if(!IXO_JSON_NextToken(ctx)) return 0;
 
-        switch(json_lex->token.type)
+        switch(lexer->token.type)
         {
             case IXO_JSON_TOK_NUMBER:
             case IXO_JSON_TOK_STRING:
@@ -231,8 +271,8 @@ static int IXO_JSON_SkipObject(IXO_JSON_ReadCtx* ctx)
                 depth--;
                 break;
 
-            default:
-                return 0;
+            default: // NONE
+                return IXO_ErrorMsg_InvalidSyntax();
         }
     }
     while(depth != 0);
@@ -240,36 +280,91 @@ static int IXO_JSON_SkipObject(IXO_JSON_ReadCtx* ctx)
 }
 
 
+static int IXO_JSON_IsDirective(const char* str)
+{
+    return str && str[0]=='!';
+}
+
+int IXO_JSON_HandleDirective(IXO_JSON_ReadCtx* ctx, void* obj, IXO_Class const* cls)
+{
+    IXO_JSON_Lexer* lexer = &ctx->lexer;
+    const char* str = IXO_String_CStr(&lexer->token.value);
+    // inherit, include, inline, insert, input
+    if(strncmp(str, "!in", 3) == 0)
+    {
+        if(!IXO_JSON_NextToken(ctx)) return 0;
+        if(lexer->token.type != IXO_JSON_TOK_COLON) return IXO_ErrorMsg_InvalidSyntax();
+
+        if(!IXO_JSON_NextToken(ctx)) return 0;
+        switch(lexer->token.type)
+        {
+            case IXO_JSON_TOK_STRING:
+            {
+                const char* fname = IXO_String_CStr(&lexer->token.value);
+                return IXO_Read(fname, ctx->file_open, obj, cls, ctx->flags);
+            } break;
+
+            case IXO_JSON_TOK_LEFT_BRACE:
+            {
+                // TODO
+                //  {
+                //      "file": "relative path",
+                //      "#param": <JSON>, // -> occurrences of "#param" get replaced by <JSON>
+                //      "#param2": <JSON>
+                //  }
+                return IXO_ErrorMsg_Unimplemented("parameterized include directive");
+            } break;
+
+            default:
+            {
+                // ERROR: expected string or object
+                return IXO_ErrorMsg_ExpectedStringOrObject();
+            }
+        }
+    }
+    else
+    {
+        // ERROR: Invalid Directive
+        return 0;
+    }
+}
 
 int IXO_JSON_ReadObject(IXO_JSON_ReadCtx* ctx, void* obj, IXO_Class const* cls)
 {
-    IXO_JSON_Lexer* json_lex = &ctx->lexer;
+    IXO_JSON_Lexer* lexer = &ctx->lexer;
 
     if(!IXO_JSON_NextToken(ctx)) return 0;
-    if(json_lex->token.type == IXO_JSON_TOK_NULL) return 1; // Keep "default" Value
+    if(lexer->token.type == IXO_JSON_TOK_NULL) return 1; // Keep "default" Value
     switch(cls->type)
     {
         case IXO_CLASS_STRUCT:
         {
             const IXO_ClassStruct* cstk = &cls->type_struct;
-            if(json_lex->token.type != IXO_JSON_TOK_LEFT_BRACE) return 0;
-            while(json_lex->token.type != IXO_JSON_TOK_RIGHT_BRACE)
+            if(lexer->token.type != IXO_JSON_TOK_LEFT_BRACE) return IXO_ErrorMsg_InvalidSyntax();
+            while(lexer->token.type != IXO_JSON_TOK_RIGHT_BRACE)
             {
-                if(json_lex->token.type != IXO_JSON_TOK_LEFT_BRACE &&
-                   json_lex->token.type != IXO_JSON_TOK_COMMA) return 0;
+                if(lexer->token.type != IXO_JSON_TOK_LEFT_BRACE && // <-- disable this the second iteration
+                   lexer->token.type != IXO_JSON_TOK_COMMA) return IXO_ErrorMsg_InvalidSyntax();
 
                 if(!IXO_JSON_NextToken(ctx)) return 0;
-                if(json_lex->token.type != IXO_JSON_TOK_STRING) return 0;
-                const IXO_StructField* field = IXO_FindStructField(cstk->fields, IXO_String_CStr(&json_lex->token.value));
-                if(!IXO_JSON_NextToken(ctx)) return 0;
-                if(json_lex->token.type != IXO_JSON_TOK_COLON) return 0;
-                if(!field)
+                if(lexer->token.type != IXO_JSON_TOK_STRING) return IXO_ErrorMsg_InvalidSyntax();
+                if((ctx->flags&IXO_ALLOW_DIRECTIVES) && IXO_JSON_IsDirective(IXO_String_CStr(&lexer->token.value)))
                 {
-                    if(!IXO_JSON_SkipObject(ctx)) return 0;
+                    if(!IXO_JSON_HandleDirective(ctx, obj, cls)) return 0;
                 }
                 else
                 {
-                    if(!IXO_JSON_ReadObject(ctx, IXO_SUBOBJECT(obj, field->offset), field->cls)) return 0;
+                    const IXO_StructField* field = IXO_FindStructField(cstk->fields, IXO_String_CStr(&lexer->token.value));
+                    if(!IXO_JSON_NextToken(ctx)) return 0;
+                    if(lexer->token.type != IXO_JSON_TOK_COLON) return IXO_ErrorMsg_InvalidSyntax();
+                    if(!field)
+                    {
+                        if(!IXO_JSON_SkipObject(ctx)) return 0;
+                    }
+                    else
+                    {
+                        if(!IXO_JSON_ReadObject(ctx, IXO_SUBOBJECT(obj, field->offset), field->cls)) return 0;
+                    }
                 }
                 if(!IXO_JSON_NextToken(ctx)) return 0;
             }
@@ -279,23 +374,23 @@ int IXO_JSON_ReadObject(IXO_JSON_ReadCtx* ctx, void* obj, IXO_Class const* cls)
         case IXO_CLASS_TUPLE:
         {
             const IXO_ClassTuple* ctup = &cls->type_tuple;
-            if(json_lex->token.type != IXO_JSON_TOK_LEFT_BRACKET) return 0;
+            if(lexer->token.type != IXO_JSON_TOK_LEFT_BRACKET) return IXO_ErrorMsg_InvalidSyntax();
             for(int i = 0; ctup->fields[i].cls != NULL; ++i)
             {
-                if(json_lex->token.type != IXO_JSON_TOK_LEFT_BRACKET &&
-                   json_lex->token.type != IXO_JSON_TOK_COMMA) return 0;
+                if(lexer->token.type != IXO_JSON_TOK_LEFT_BRACKET &&
+                   lexer->token.type != IXO_JSON_TOK_COMMA) return IXO_ErrorMsg_InvalidSyntax();
 
                 IXO_JSON_ReadObject(ctx, IXO_SUBOBJECT(obj, ctup->fields[i].offset), ctup->fields[i].cls);
 
                 if(!IXO_JSON_NextToken(ctx)) return 0;
             }
-            if(json_lex->token.type != IXO_JSON_TOK_RIGHT_BRACKET) return 0;
+            if(lexer->token.type != IXO_JSON_TOK_RIGHT_BRACKET) return IXO_ErrorMsg_InvalidSyntax();
             return 1;
         } break;
 
         case IXO_CLASS_FIXED_ARRAY:
         {
-            const IXO_ClassArray* carr = &cls->type_array;
+           // const IXO_ClassArray* carr = &cls->type_array;
             // dynamic allocation
             // TODO
         } break;
@@ -305,19 +400,19 @@ int IXO_JSON_ReadObject(IXO_JSON_ReadCtx* ctx, void* obj, IXO_Class const* cls)
             const IXO_ClassArrayExt* xarr = cls->type_array.ext;
             if(xarr->element_size == 0)
             {
-                if(json_lex->token.type != IXO_JSON_TOK_LEFT_BRACKET) return 0;
+                if(lexer->token.type != IXO_JSON_TOK_LEFT_BRACKET) return IXO_ErrorMsg_InvalidSyntax();
                 while(1)
                 {
-                    if(json_lex->token.type != IXO_JSON_TOK_LEFT_BRACKET &&
-                       json_lex->token.type != IXO_JSON_TOK_COMMA) return 0;
+                    if(lexer->token.type != IXO_JSON_TOK_LEFT_BRACKET &&
+                       lexer->token.type != IXO_JSON_TOK_COMMA) return IXO_ErrorMsg_InvalidSyntax();
 
                     void* element = xarr->push(obj, NULL);
-                    if(element == NULL) return 0;
+                    if(element == NULL) return 0; // TODO: error handling
                     memset(element, 0, xarr->element_size);
                     IXO_JSON_ReadObject(ctx, element, xarr->cls);
 
                     if(!IXO_JSON_NextToken(ctx)) return 0;
-                    if(json_lex->token.type == IXO_JSON_TOK_RIGHT_BRACKET) break;
+                    if(lexer->token.type == IXO_JSON_TOK_RIGHT_BRACKET) break;
                 }
                 return 1;
             }
@@ -326,18 +421,18 @@ int IXO_JSON_ReadObject(IXO_JSON_ReadCtx* ctx, void* obj, IXO_Class const* cls)
                 /// Variable length array
                 char buf[xarr->element_size];
 
-                if(json_lex->token.type != IXO_JSON_TOK_LEFT_BRACKET) return 0;
+                if(lexer->token.type != IXO_JSON_TOK_LEFT_BRACKET) return IXO_ErrorMsg_InvalidSyntax();
                 while(1)
                 {
-                    if(json_lex->token.type != IXO_JSON_TOK_LEFT_BRACKET &&
-                       json_lex->token.type != IXO_JSON_TOK_COMMA) return 0;
+                    if(lexer->token.type != IXO_JSON_TOK_LEFT_BRACKET &&
+                       lexer->token.type != IXO_JSON_TOK_COMMA) return IXO_ErrorMsg_InvalidSyntax();
 
                     memset(buf, 0, xarr->element_size);
                     IXO_JSON_ReadObject(ctx, buf, xarr->cls);
                     xarr->push(obj, buf);
 
                     if(!IXO_JSON_NextToken(ctx)) return 0;
-                    if(json_lex->token.type == IXO_JSON_TOK_RIGHT_BRACKET) break;
+                    if(lexer->token.type == IXO_JSON_TOK_RIGHT_BRACKET) break;
                 }
                 return 1;
             }
@@ -346,13 +441,16 @@ int IXO_JSON_ReadObject(IXO_JSON_ReadCtx* ctx, void* obj, IXO_Class const* cls)
 
         case IXO_CLASS_STRING:
         {
-            if(json_lex->token.type != IXO_JSON_TOK_STRING) return 0;
+            if(lexer->token.type != IXO_JSON_TOK_STRING) return IXO_ErrorMsg_InvalidSyntax();
 
             const IXO_ClassString* cstr = &cls->type_string;
-            IXO_String_Unescape(&json_lex->token.value);
-            const char* str = IXO_String_CStr(&json_lex->token.value);
+            IXO_String_Unescape(&lexer->token.value);
+            const char* str = IXO_String_CStr(&lexer->token.value);
             if(cstr->buf_size == 0)
+            {
+                free(*(char**)obj);
                 *(char**)obj = strdup(str);
+            }
             else
                 strncpy((char*)obj, str, cstr->buf_size);
 
@@ -361,15 +459,15 @@ int IXO_JSON_ReadObject(IXO_JSON_ReadCtx* ctx, void* obj, IXO_Class const* cls)
 
         case IXO_CLASS_NUMBER:
         {
-            if(json_lex->token.type != IXO_JSON_TOK_NUMBER) return 0;
+            if(lexer->token.type != IXO_JSON_TOK_NUMBER) return IXO_ErrorMsg_InvalidSyntax();
 
             const IXO_ClassPrimitive* cpri = &cls->type_primitive;
-            const char* str = IXO_String_CStr(&json_lex->token.value);
+            const char* str = IXO_String_CStr(&lexer->token.value);
 
             switch((IXO_NumberType)cpri->bits)
             {
 #define X(enum_name, c_type, pfmt, sfmt) \
-                case enum_name: return !!sscanf(str, "%" sfmt, (c_type*)(obj));
+                case enum_name: return sscanf(str, "%" sfmt, (c_type*)(obj)) ? 1 : IXO_ErrorMsg_InvalidNumber();
 
                 IXO_NUM_TYPE_XY(X,IXO_PP_NONE)
 #undef X
@@ -381,17 +479,17 @@ int IXO_JSON_ReadObject(IXO_JSON_ReadCtx* ctx, void* obj, IXO_Class const* cls)
         case IXO_CLASS_BITS:
         {
             const IXO_ClassBits* cbts = &cls->type_bits;
-            if(json_lex->token.type != IXO_JSON_TOK_LEFT_BRACKET) return 0;
-            while(json_lex->token.type != IXO_JSON_TOK_RIGHT_BRACKET)
+            if(lexer->token.type != IXO_JSON_TOK_LEFT_BRACKET) return IXO_ErrorMsg_InvalidSyntax();
+            while(lexer->token.type != IXO_JSON_TOK_RIGHT_BRACKET)
             {
-                if(json_lex->token.type != IXO_JSON_TOK_LEFT_BRACKET &&
-                   json_lex->token.type != IXO_JSON_TOK_COMMA) return 0;
+                if(lexer->token.type != IXO_JSON_TOK_LEFT_BRACKET &&
+                   lexer->token.type != IXO_JSON_TOK_COMMA) return IXO_ErrorMsg_InvalidSyntax();
 
 
                 if(!IXO_JSON_NextToken(ctx)) return 0;
-                if(json_lex->token.type != IXO_JSON_TOK_STRING) return 0;
+                if(lexer->token.type != IXO_JSON_TOK_STRING) return IXO_ErrorMsg_InvalidSyntax();
 
-                const char* str = IXO_String_CStr(&json_lex->token.value);
+                const char* str = IXO_String_CStr(&lexer->token.value);
                 const IXO_BitField* field = IXO_FindBitField(cbts->fields, str);
                 if(field != NULL)
                 {
@@ -406,15 +504,15 @@ int IXO_JSON_ReadObject(IXO_JSON_ReadCtx* ctx, void* obj, IXO_Class const* cls)
         case IXO_CLASS_ENUM:
         {
             const IXO_ClassEnum* cenm = &cls->type_enum;
-            if(json_lex->token.type != IXO_JSON_TOK_STRING) return 0;
-            const char* str = IXO_String_CStr(&json_lex->token.value);
+            if(lexer->token.type != IXO_JSON_TOK_STRING) return IXO_ErrorMsg_InvalidSyntax();
+            const char* str = IXO_String_CStr(&lexer->token.value);
             const IXO_EnumOption* opt = IXO_FindEnumOption(cenm->fields, str);
             if(opt != NULL)
             {
                 *(uint32_t*)obj = opt->value;
                 return 1;
             }
-            return 0;
+            return IXO_ErrorMsg_UnknownEnumValue();
         } break;
 
         default: IXO_UNREACHABLE();
@@ -423,11 +521,30 @@ int IXO_JSON_ReadObject(IXO_JSON_ReadCtx* ctx, void* obj, IXO_Class const* cls)
 }
 
 
-int IXO_ReadJSON(FILE* file, void* obj, IXO_Class const* cls)
+size_t IXO_JSON_PrintContext(void* user, char* buf, size_t bufsiz)
 {
-    IXO_JSON_ReadCtx ctx = {0};
+    IXO_JSON_ReadCtx* ctx = user;
+    return snprintf(buf, bufsiz, "%s:%i:%i", ctx->fname, ctx->prev_line, ctx->prev_column);
+}
+
+int IXO_ReadJSON(FILE* file, const char* fname, const IXO_FileOpener* file_open, void* obj, IXO_Class const* cls, int flags)
+{
+    IXO_JSON_ReadCtx ctx;
     ctx.file = file;
+    ctx.file_open = file_open;
+
+    ctx.fname = fname;
+    ctx.line = 1; ctx.column = 1;
+    ctx.flags = flags;
+
+    memset(&ctx.lexer, 0, sizeof ctx.lexer);
+
+    IXO_ErrorContext err_ctx;
+    err_ctx.print_context = &IXO_JSON_PrintContext;
+    err_ctx.user = &ctx;
+    IXO_PushErrorContext(&err_ctx);
     int success = IXO_JSON_ReadObject(&ctx, obj, cls);
+    IXO_PopErrorContext();
     IXO_JSON_DestructReadCtx(&ctx);
     return success;
 }
@@ -505,7 +622,7 @@ int IXO_JSON_WriteObject(IXO_JSON_WriteCtx* ctx, const void* obj, IXO_Class cons
 
         case IXO_CLASS_FIXED_ARRAY:
         {
-            const IXO_ClassArray* carr = &cls->type_array;
+           // const IXO_ClassArray* carr = &cls->type_array;
             // dynamic allocation
             // TODO
         } break;
@@ -606,7 +723,7 @@ int IXO_JSON_WriteObject(IXO_JSON_WriteCtx* ctx, const void* obj, IXO_Class cons
                 if(cenm->fields[i+1].name == NULL) break;
             }
 
-            return 0;
+            return 0; // TODO: UB? or message
         } break;
 
         default: IXO_UNREACHABLE();
@@ -615,10 +732,12 @@ int IXO_JSON_WriteObject(IXO_JSON_WriteCtx* ctx, const void* obj, IXO_Class cons
 }
 
 
-int IXO_WriteJSON(FILE* file, const void* obj, const IXO_Class* cls)
+int IXO_WriteJSON(FILE* file, const char* fname, const IXO_FileOpener* file_open, const void* obj, const IXO_Class* cls, int flags)
 {
     IXO_JSON_WriteCtx ctx = {0};
     ctx.file = file;
+    (void)fname;
+    (void)flags;
     int success = IXO_JSON_WriteObject(&ctx, obj, cls);
     IXO_JSON_DestructWriteCtx(&ctx);
     return success;

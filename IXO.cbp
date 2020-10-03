@@ -36,16 +36,29 @@
 		<Unit filename="include/IXO.h" />
 		<Unit filename="include/IXO_class.h" />
 		<Unit filename="include/IXO_classdef.h" />
+		<Unit filename="include/IXO_error.h" />
+		<Unit filename="include/IXO_error_ctx.h" />
+		<Unit filename="include/IXO_error_msg.h" />
 		<Unit filename="include/IXO_general.h" />
 		<Unit filename="include/IXO_json.h" />
 		<Unit filename="include/IXO_opt.h" />
 		<Unit filename="include/IXO_pp.h" />
 		<Unit filename="include/IXO_string.h" />
 		<Unit filename="include/IXO_util.h" />
+		<Unit filename="includes.txt" />
 		<Unit filename="src/IXO.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/IXO_class.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/IXO_error.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/IXO_error_ctx.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/IXO_error_msg.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/IXO_general.c">
@@ -63,7 +76,22 @@
 		<Unit filename="tst/test_IXO.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="tst/tst1.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="tst/tst1.h" />
 		<Unit filename="tst/tst1.json" />
+		<Unit filename="tst/tst2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="tst/tst2.h" />
+		<Unit filename="tst/tst2_child.json" />
+		<Unit filename="tst/tst2_parent.json" />
+		<Unit filename="tst/tst3.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="tst/tst3.h" />
+		<Unit filename="tst/tst3_0.json" />
 		<Extensions>
 			<lib_finder disable_auto="1" />
 		</Extensions>
