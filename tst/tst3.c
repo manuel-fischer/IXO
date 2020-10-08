@@ -150,6 +150,7 @@ typedef struct Struct
     Bitset      bitset_field;
 } Struct;
 
+// TODO: static prefix: static IXO_Class Struct_class;
 IXO_STRUCTDEF(Struct,
     (string_array_field, &StringArray_class),
     (triple_field,       &Triple_class),

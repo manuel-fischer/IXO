@@ -92,6 +92,7 @@
 		</Unit>
 		<Unit filename="tst/tst3.h" />
 		<Unit filename="tst/tst3_0.json" />
+		<Unit filename="tst/tst3_1.json" />
 		<Extensions>
 			<lib_finder disable_auto="1" />
 		</Extensions>

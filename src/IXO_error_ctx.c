@@ -3,7 +3,7 @@
 #include <string.h> // memcpy
 
 // TODO: thread local
-static IXO_ErrorContext* IXO_error_context = 0;
+static IXO_ErrorContext* IXO_error_context = NULL;
 
 void IXO_PushErrorContext(IXO_ErrorContext* err_ctx)
 {
